@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>맞춤법 척척박사</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF5EF; --sheet:#FFFFFF; --grid:#8FC3A0; --grid-soft:#D6EADC;
+  --ink:#1F2A44; --ink-soft:#56607A; --red:#D63B3B; --red-bg:#FCECEC;
+  --yellow:#FFD84D; --yellow-ink:#4A3A00; --btn:#1F2A44; --btn-ink:#FFFFFF;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131D18; --sheet:#1B2922; --grid:#3E7A59; --grid-soft:#22362B;
+    --ink:#E8EEF7; --ink-soft:#A8B4C6; --red:#FF6E6E; --red-bg:#3A2326;
+    --yellow:#E8C23C; --yellow-ink:#231B00; --btn:#E8EEF7; --btn-ink:#131D18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131D18; --sheet:#1B2922; --grid:#3E7A59; --grid-soft:#22362B;
+  --ink:#E8EEF7; --ink-soft:#A8B4C6; --red:#FF6E6E; --red-bg:#3A2326;
+  --yellow:#E8C23C; --yellow-ink:#231B00; --btn:#E8EEF7; --btn-ink:#131D18;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100vh; color:var(--ink);
+  font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-soft) 1px, transparent 1px);
+  background-size:32px 32px;
+  line-height:1.6;
+}
+.hand{font-family:"Gaegu","Nanum Pen Script",cursive;}
+main{max-width:760px; margin:0 auto; padding:24px 16px 48px;}
+.sheet{
+  background:var(--sheet); border:2px solid var(--grid); border-radius:4px;
+  padding:28px clamp(16px,4vw,40px);
+}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible,.chip:focus-within{outline:3px solid var(--yellow); outline-offset:3px}
+.hidden{display:none !important}
+
+/* ----- title in manuscript-paper cells ----- */
+.title{display:flex; flex-wrap:wrap; justify-content:center; gap:0; margin:8px 0 6px}
+.cell{
+  width:clamp(44px,11vw,72px); height:clamp(44px,11vw,72px);
+  border:2px solid var(--grid); margin-left:-2px;
+  display:grid; place-items:center;
+  font-family:"Gaegu",cursive; font-weight:700; font-size:clamp(30px,8vw,52px); line-height:1;
+  background:var(--sheet);
+}
+.cell:first-child{margin-left:0}
+.cell span{opacity:0; transform:translateY(4px); animation:write .35s ease-out forwards}
+.cell.gap{border-color:transparent; background:transparent; width:clamp(14px,3vw,22px)}
+@keyframes write{to{opacity:1; transform:none}}
+.lead{text-align:center; color:var(--ink-soft); margin:14px 0 26px; font-size:1.05rem}
+
+.group{margin:0 0 22px}
+.group h2{font-size:1.05rem; margin:0 0 10px; font-weight:400; color:var(--ink-soft)}
+.modes{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.mode{
+  text-align:left; background:var(--sheet); border:2px solid var(--grid); border-radius:4px;
+  padding:14px 16px;
+}
+.mode b{display:block; font-family:"Gaegu",cursive; font-size:1.7rem; line-height:1.1}
+.mode small{color:var(--ink-soft); font-size:.92rem}
+.mode[aria-pressed="true"]{border-color:var(--ink); box-shadow:4px 4px 0 var(--ink)}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip input{position:absolute; opacity:0; pointer-events:none}
+.chip span{
+  display:inline-block; padding:6px 14px; border:2px solid var(--grid); border-radius:999px;
+  cursor:pointer; background:var(--sheet);
+}
+.chip input:checked + span{background:var(--ink); color:var(--sheet); border-color:var(--ink)}
+.primary{
+  width:100%; padding:14px; border:none; border-radius:4px;
+  background:var(--btn); color:var(--btn-ink);
+  font-family:"Gaegu",cursive; font-weight:700; font-size:1.8rem;
+}
+.ghost{
+  padding:12px 18px; border:2px solid var(--ink); border-radius:4px; background:transparent;
+  font-family:"Gaegu",cursive; font-weight:700; font-size:1.4rem;
+}
+.best{text-align:center; color:var(--ink-soft); margin:14px 0 0; font-size:.95rem}
+
+/* ----- play ----- */
+.bar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+.bar .hand{font-size:1.5rem; font-weight:700}
+.hearts{font-size:1.4rem; letter-spacing:2px; color:var(--red)}
+.streak{color:var(--ink-soft)}
+.timer{height:8px; border:2px solid var(--grid); border-radius:999px; overflow:hidden; margin-bottom:18px}
+.timer i{display:block; height:100%; width:100%; background:var(--yellow); transform-origin:left}
+.timer.low i{background:var(--red)}
+.sentence{
+  font-family:"Gaegu",cursive; font-weight:700;
+  font-size:clamp(1.9rem,6vw,2.7rem); line-height:1.5; text-align:center;
+  margin:18px 0 28px; word-break:keep-all;
+}
+.blank{
+  display:inline-block; min-width:2.6em; padding:0 .25em;
+  border-bottom:4px solid var(--ink); color:transparent; line-height:1.15;
+}
+.blank.filled{color:var(--red); border-bottom-color:var(--red)}
+.choices{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.choice{
+  position:relative; padding:22px 10px; background:var(--sheet);
+  border:2px solid var(--grid); border-radius:4px;
+  font-family:"Gaegu",cursive; font-weight:700; font-size:clamp(2rem,7vw,2.8rem); line-height:1.1;
+}
+.choice:not(:disabled):hover{border-color:var(--ink)}
+.choice:disabled{cursor:default}
+.choice .key{position:absolute; top:6px; left:10px; font-family:"Gowun Dodum",sans-serif; font-size:.85rem; color:var(--ink-soft); font-weight:400}
+.choice.dim{opacity:.55}
+.mark{position:absolute; inset:-6px; width:calc(100% + 12px); height:calc(100% + 12px); pointer-events:none; overflow:visible}
+.mark path{fill:none; stroke:var(--red); stroke-width:5; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:draw .45s ease-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.feedback{margin-top:22px; padding:16px 18px; border-left:5px solid var(--red); background:var(--red-bg); border-radius:0 4px 4px 0}
+.feedback .verdict{font-family:"Gaegu",cursive; font-weight:700; font-size:1.7rem; line-height:1.2; margin:0 0 4px}
+.feedback p{margin:0}
+.next{margin-top:18px}
+.hint{text-align:center; color:var(--ink-soft); font-size:.9rem; margin:14px 0 0}
+
+/* ----- result ----- */
+.stamp{
+  width:150px; height:150px; margin:4px auto 10px; border:5px solid var(--red); border-radius:50%;
+  display:grid; place-items:center; text-align:center; color:var(--red);
+  font-family:"Gaegu",cursive; font-weight:700; font-size:1.9rem; line-height:1.05;
+  transform:rotate(-10deg);
+}
+.score{text-align:center; font-family:"Gaegu",cursive; font-weight:700; font-size:2.4rem; margin:0}
+.result-msg{text-align:center; color:var(--ink-soft); margin:0 0 22px}
+.notes h2{font-family:"Gaegu",cursive; font-size:1.8rem; margin:8px 0 10px; font-weight:700}
+.note{padding:12px 0; border-top:2px dashed var(--grid)}
+.note .s{font-family:"Gaegu",cursive; font-weight:700; font-size:1.45rem; line-height:1.4}
+.note .s em{font-style:normal; color:var(--red)}
+.note .w{color:var(--ink-soft); font-size:.95rem}
+.note .w del{color:var(--ink-soft)}
+.actions{display:flex; gap:12px; margin-top:22px}
+.actions > *{flex:1}
+@media (max-width:520px){ .modes{grid-template-columns:1fr} .actions{flex-direction:column} }
+@media (prefers-reduced-motion: reduce){
+  .cell span{animation:none; opacity:1; transform:none}
+  .mark path{animation:none; stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<main>
+  <!-- 시작 화면 -->
+  <section id="start" class="sheet">
+    <div class="title" id="title" aria-label="맞춤법 척척박사"></div>
+    <p class="lead">문장 속 빈칸에 들어갈 바른 말을 골라 보세요.</p>
+
+    <div class="group">
+      <h2>놀이 방법</h2>
+      <div class="modes">
+        <button class="mode" data-mode="practice" aria-pressed="true"><b>연습하기</b><small>10문제 · 시간 제한 없음</small></button>
+        <button class="mode" data-mode="challenge" aria-pressed="false"><b>도전하기</b><small>하트 3개 · 한 문제에 12초</small></button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>문제 종류</h2>
+      <div class="chips" role="radiogroup">
+        <label class="chip"><input type="radio" name="cat" value="all" checked><span>모두 섞기</span></label>
+        <label class="chip"><input type="radio" name="cat" value="m"><span>뜻이 다른 말</span></label>
+        <label class="chip"><input type="radio" name="cat" value="c"><span>줄임말과 바뀌는 말</span></label>
+        <label class="chip"><input type="radio" name="cat" value="s"><span>헷갈리는 표기</span></label>
+      </div>
+    </div>
+
+    <button class="primary" id="startBtn">시작하기</button>
+    <p class="best" id="best"></p>
+  </section>
+
+  <!-- 문제 화면 -->
+  <section id="play" class="sheet hidden" aria-live="polite">
+    <div class="bar">
+      <span class="hand" id="progress"></span>
+      <span class="streak" id="streak"></span>
+      <span class="hearts" id="hearts" aria-label=""></span>
+    </div>
+    <div class="timer" id="timer"><i id="timerFill"></i></div>
+    <div class="sentence" id="sentence"></div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback hidden" id="feedback">
+      <p class="verdict" id="verdict"></p>
+      <p id="tip"></p>
+    </div>
+    <button class="primary next hidden" id="nextBtn">다음 문제</button>
+    <p class="hint" id="hint">키보드: 1 · 2 로 고르고, Enter 로 넘어가요</p>
+  </section>
+
+  <!-- 결과 화면 -->
+  <section id="result" class="sheet hidden">
+    <div class="stamp" id="stamp"></div>
+    <p class="score" id="score"></p>
+    <p class="result-msg" id="resultMsg"></p>
+    <div class="notes" id="notes"></div>
+    <div class="actions">
+      <button class="primary" id="againBtn">한 번 더</button>
+      <button class="ghost" id="homeBtn">처음으로</button>
+    </div>
+  </section>
+</main>
+
+<script>
+// [종류, 문장(빈칸은 ___), 정답, 오답, 설명]
+// m: 뜻이 다른 말 / c: 줄임말과 바뀌는 말 / s: 헷갈리는 표기
+const QUESTIONS = [
+  ["c","그러면 절대 안 ___!","돼","되","‘되어’를 줄인 말이 ‘돼’예요. ‘안 되어’로 바꿔도 말이 되니까 ‘돼’가 맞아요."],
+  ["c","내일 학교에서 ___.","봬요","뵈요","‘뵈어요’를 줄이면 ‘봬요’가 돼요."],
+  ["c","오늘은 ___ 기분이 좋아.","왠지","웬지","‘왜인지’를 줄인 말이라 ‘왠지’로 써요."],
+  ["s","네가 여기까지 ___이야?","웬일","왠일","‘어찌 된 일’이라는 뜻의 ‘웬일’이에요. ‘왠’은 ‘왠지’에만 써요."],
+  ["s","___ 오늘 안에 숙제를 끝내자.","웬만하면","왠만하면","‘웬만하다’가 바른 말이에요. ‘왠’은 ‘왠지’에만 쓴다고 기억해요."],
+  ["m","나는 6학년 학생___ 모범을 보이겠다.","으로서","으로써","자격이나 신분을 나타낼 때는 ‘로서’, 수단이나 도구를 나타낼 때는 ‘로써’예요."],
+  ["m","우리는 대화___ 문제를 해결했다.","로써","로서","대화가 문제를 푼 ‘수단’이니까 ‘로써’를 써요."],
+  ["m","감기가 빨리 ___ 좋겠어.","나으면","낳으면","병이 좋아지는 것은 ‘낫다’, 아기나 알을 내놓는 것은 ‘낳다’예요."],
+  ["m","퀴즈 정답을 모두 ___.","맞혔다","맞췄다","정답을 골라내는 것은 ‘맞히다’, 서로 비교하거나 짝을 맞게 하는 것은 ‘맞추다’예요."],
+  ["m","선생님께서 수학을 ___ 주셨다.","가르쳐","가리켜","지식을 알려 주는 것은 ‘가르치다’, 손가락으로 방향을 짚는 것은 ‘가리키다’예요."],
+  ["c","네가 꼭 합격하기를 ___.","바라","바래","기본형이 ‘바라다’라서 ‘바라’, ‘바람’으로 써요. ‘바래다’는 색이 변한다는 뜻이에요."],
+  ["c","아이스크림이 ___ 녹아 버렸다.","금세","금새","‘금시에’를 줄인 말이라 ‘금세’예요."],
+  ["s","여행은 ___ 동안 다녀왔어?","며칠","몇일","‘몇 일’로 쓰지 않고 언제나 ‘며칠’로 써요."],
+  ["s","저녁을 먹고 ___를 도왔다.","설거지","설겆이","‘설거지’가 표준어예요. ‘설겆이’는 옛 표기예요."],
+  ["s","동생이 ___ 내 과자를 먹었다.","일부러","일부로","‘일부러’가 바른 말이에요. ‘일부로’는 소리 나는 대로 잘못 쓴 거예요."],
+  ["c","할머니를 ___ 만났다.","오랜만에","오랫만에","‘오래간만에’를 줄인 말이라 ‘오랜만에’예요."],
+  ["s","정말 ___ 일이 다 있네.","희한한","희안한","‘희한하다’가 바른 말이에요. 소리는 [히한]이라도 ‘한’으로 적어요."],
+  ["s","밥 먹기 전에 손을 ___ 씻자.","깨끗이","깨끗히","‘ㅅ’ 받침 뒤에는 ‘-이’를 써요. (깨끗이, 버젓이, 느긋이)"],
+  ["s","문제를 ___ 읽어 보자.","꼼꼼히","꼼꼼이","‘꼼꼼하다’처럼 ‘-하다’가 붙는 말은 대개 ‘-히’로 써요."],
+  ["s","___ 생각해 보니 내가 잘못했어.","곰곰이","곰곰히","‘곰곰하다’라는 말은 없어서 ‘-이’를 붙여 ‘곰곰이’로 써요."],
+  ["s","숙제 끝나면 전화 ___.","할게","할께","소리는 [께]로 나도 ‘-ㄹ게’로 적어요."],
+  ["s","연극에서 나는 왕 ___을 맡았다.","역할","역활","한자 ‘역(役)’과 ‘할(割)’이 합쳐진 말이라 ‘역할’이에요."],
+  ["s","___를 베고 누웠다.","베개","배게","머리를 ‘베는’ 물건이라 ‘베개’예요."],
+  ["s","점심으로 된장___를 먹었다.","찌개","찌게","‘찌개’가 바른 말이에요. ‘베개’, ‘지우개’처럼 ‘-개’로 끝나요."],
+  ["s","그렇게 ___ 화낼 필요는 없잖아.","굳이","구지","‘굳다’에서 온 말이라 ‘굳이’로 적어요. 소리만 [구지]예요."],
+  ["c","나는 어제 숙제를 ___ 했다.","안","않","‘안’은 ‘아니’를 줄인 말로 움직임 앞에 와요. ‘않’은 ‘-지 않다’ 꼴에 써요."],
+  ["c","나는 그 영화를 보지 ___았다.","않","안","‘-지’ 뒤에는 ‘않다’가 와요. ‘아니하다’를 줄인 말이 ‘않다’예요."],
+  ["m","약속은 ___ 지켜야 한다.","반드시","반듯이","‘꼭’이라는 뜻은 ‘반드시’, ‘비뚤지 않게’라는 뜻은 ‘반듯이’예요."],
+  ["m","의자에 허리를 펴고 ___ 앉아라.","반듯이","반드시","비뚤지 않고 바르게 앉는 거라서 ‘반듯이’예요."],
+  ["m","할머니께 편지를 ___.","부쳤다","붙였다","우편으로 보내는 것은 ‘부치다’, 떨어지지 않게 대는 것은 ‘붙이다’예요."],
+  ["m","봉투에 우표를 ___.","붙였다","부쳤다","우표가 봉투에 딱 붙어 있게 하니까 ‘붙이다’예요."],
+  ["m","나와 친구는 좋아하는 색이 ___.","다르다","틀리다","서로 같지 않으면 ‘다르다’, 맞지 않으면 ‘틀리다’예요."],
+  ["c","준비물을 안 가져왔어. 이제 ___?","어떡해","어떻게","‘어떻게 해’를 줄인 말이 ‘어떡해’예요. 문장 끝에서 쓰여요."],
+  ["s","아침에 일어나니 ___이 꼈다.","눈곱","눈꼽","‘눈’과 ‘곱’이 합쳐진 말이라 ‘눈곱’이에요."],
+  ["c","엄마가 김치를 ___.","담갔다","담궜다","기본형이 ‘담그다’라서 ‘담가, 담갔다’로 바뀌어요."],
+  ["c","나가면서 현관문을 ___.","잠갔다","잠궜다","기본형이 ‘잠그다’라서 ‘잠가, 잠갔다’로 바뀌어요."],
+  ["c","수학여행 전날 ___ 때문에 잠이 안 왔다.","설렘","설레임","기본형이 ‘설레다’라서 ‘설렘’이 맞아요."],
+  ["s","사탕의 ___를 세어 보자.","개수","갯수","한자끼리 합쳐진 말에는 사이시옷을 쓰지 않아요. (예외: 숫자, 횟수, 곳간, 셋방, 찻간, 툇간)"],
+  ["m","가방을 어깨에 ___.","멨다","맸다","어깨에 걸치는 것은 ‘메다’, 끈을 묶는 것은 ‘매다’예요."],
+  ["m","운동화 끈을 단단히 ___.","맸다","멨다","끈을 묶는 것이라 ‘매다’예요."],
+  ["m","빨간 옷을 입어서 눈에 잘 ___.","띈다","띤다","‘눈에 뜨이다’를 줄인 말이 ‘띄다’예요. ‘띠다’는 빛깔이나 성질을 가진다는 뜻이에요."],
+  ["m","발표 결과가 나올 때까지 마음을 ___.","졸였다","조렸다","걱정으로 애태우는 것은 ‘졸이다’, 양념이 배게 끓이는 것은 ‘조리다’예요."],
+  ["m","___ 놀이터에서 만나자.","이따가","있다가","‘조금 지난 뒤에’라는 뜻은 ‘이따가’, ‘머무르다가’라는 뜻은 ‘있다가’예요."],
+  ["m","저 산 ___에 바다가 있대.","너머","넘어","장소를 가리킬 때는 ‘너머’, 무엇을 넘는 동작은 ‘넘어’예요."],
+  ["c","학교 오는 길에 문구점에 ___.","들렀다","들렸다","기본형이 ‘들르다’라서 ‘들러, 들렀다’로 바뀌어요."],
+  ["c","어제 수학 시험을 ___.","치렀다","치뤘다","기본형이 ‘치르다’라서 ‘치러, 치렀다’로 바뀌어요."],
+  ["s","위험을 ___ 친구를 구했다.","무릅쓰고","무릎쓰고","몸의 ‘무릎’과는 상관없는 말이에요. ‘무릅쓰다’로 써요."],
+  ["s","그 말을 듣고 ___ 웃음만 나왔다.","어이없어서","어의없어서","‘어이없다’가 바른 말이에요. ‘어의’는 임금의 의사를 뜻해요."],
+  ["m","마을 사람들이 큰 잔치를 ___.","벌였다","벌렸다","일을 펼쳐 놓는 것은 ‘벌이다’, 사이를 넓히는 것은 ‘벌리다’예요."],
+  ["m","오래 쪼그려 앉았더니 다리가 ___.","저리다","절이다","피가 잘 안 통해 찌릿한 것은 ‘저리다’, 소금에 담가 두는 것은 ‘절이다’예요."]
+];
+
+const PRACTICE_COUNT = 10, TIME_LIMIT = 12, START_HEARTS = 3;
+const $ = id => document.getElementById(id);
+let mode = "practice", queue = [], idx = 0, correct = 0, hearts = 0, streak = 0, wrongs = [];
+let answered = false, timerId = null, deadline = 0;
+
+const store = {
+  get(k){ try{ return Number(localStorage.getItem(k)) || 0; }catch(e){ return 0; } },
+  set(k,v){ try{ localStorage.setItem(k,String(v)); }catch(e){} }
+};
+
+// title written cell by cell
+(function(){
+  const t = $("title"); let n = 0;
+  for(const ch of "맞춤법 척척박사"){
+    const c = document.createElement("div");
+    if(ch === " "){ c.className = "cell gap"; t.appendChild(c); continue; }
+    c.className = "cell";
+    const s = document.createElement("span");
+    s.textContent = ch; s.style.animationDelay = (n++ * 0.12) + "s";
+    c.appendChild(s); t.appendChild(c);
+  }
+})();
+
+function showBest(){
+  const p = store.get("best-practice"), c = store.get("best-challenge");
+  const parts = [];
+  if(p) parts.push(`연습 최고 ${p}/${PRACTICE_COUNT}`);
+  if(c) parts.push(`도전 최고 ${c}문제`);
+  $("best").textContent = parts.length ? "내 기록: " + parts.join(", ") : "";
+}
+showBest();
+
+document.querySelectorAll(".mode").forEach(b => b.addEventListener("click", () => {
+  mode = b.dataset.mode;
+  document.querySelectorAll(".mode").forEach(x => x.setAttribute("aria-pressed", x === b));
+}));
+
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function show(id){ ["start","play","result"].forEach(s => $(s).classList.toggle("hidden", s !== id)); window.scrollTo(0,0); }
+
+function startGame(){
+  const cat = document.querySelector('input[name="cat"]:checked').value;
+  const pool = QUESTIONS.filter(q => cat === "all" || q[0] === cat);
+  queue = shuffle(pool);
+  if(mode === "practice") queue = queue.slice(0, PRACTICE_COUNT);
+  idx = 0; correct = 0; streak = 0; wrongs = []; hearts = START_HEARTS;
+  $("timer").classList.toggle("hidden", mode !== "challenge");
+  $("hearts").classList.toggle("hidden", mode !== "challenge");
+  show("play");
+  renderQuestion();
+}
+
+function renderSentence(q, filled){
+  const el = $("sentence"); el.textContent = "";
+  const [before, after] = q[1].split("___");
+  el.append(before);
+  const b = document.createElement("span");
+  b.className = "blank" + (filled ? " filled" : "");
+  b.textContent = filled ? q[2] : "가나다";
+  el.append(b, after);
+}
+
+function renderQuestion(){
+  answered = false;
+  const q = queue[idx];
+  $("progress").textContent = mode === "practice" ? `${idx+1} / ${queue.length}` : `${idx+1}번째 문제`;
+  $("streak").textContent = streak >= 2 ? `연속 ${streak}개 정답` : "";
+  $("hearts").textContent = "♥".repeat(hearts) + "♡".repeat(START_HEARTS - hearts);
+  $("hearts").setAttribute("aria-label", `하트 ${hearts}개 남음`);
+  renderSentence(q, false);
+  const box = $("choices"); box.textContent = "";
+  shuffle([q[2], q[3]]).forEach((word, i) => {
+    const btn = document.createElement("button");
+    btn.className = "choice"; btn.dataset.word = word;
+    const k = document.createElement("span"); k.className = "key"; k.textContent = i + 1;
+    btn.append(k, word);
+    btn.addEventListener("click", () => answer(word));
+    box.appendChild(btn);
+  });
+  $("feedback").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  if(mode === "challenge") startTimer();
+}
+
+function startTimer(){
+  clearInterval(timerId);
+  deadline = Date.now() + TIME_LIMIT * 1000;
+  const fill = $("timerFill");
+  timerId = setInterval(() => {
+    const left = Math.max(0, deadline - Date.now());
+    fill.style.transform = `scaleX(${left / (TIME_LIMIT*1000)})`;
+    $("timer").classList.toggle("low", left < 4000);
+    if(left <= 0){ clearInterval(timerId); answer(null); }
+  }, 80);
+  fill.style.transform = "scaleX(1)";
+}
+
+function drawMark(btn, kind){
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class","mark"); svg.setAttribute("viewBox","0 0 200 100");
+  svg.setAttribute("preserveAspectRatio","none"); svg.setAttribute("aria-hidden","true");
+  const p = document.createElementNS(ns, "path");
+  p.setAttribute("pathLength","1");
+  p.setAttribute("d", kind === "o"
+    ? "M104,8 C162,6 194,28 190,52 C186,80 140,94 96,92 C46,90 8,74 10,48 C12,22 58,6 118,12"
+    : "M24,86 L176,14");
+  svg.appendChild(p); btn.appendChild(svg);
+}
+
+function answer(word){
+  if(answered) return;
+  answered = true; clearInterval(timerId);
+  const q = queue[idx];
+  const ok = word === q[2];
+  document.querySelectorAll(".choice").forEach(b => {
+    b.disabled = true;
+    if(b.dataset.word === q[2]) drawMark(b, "o");
+    else { b.classList.add("dim"); if(word === b.dataset.word) drawMark(b, "x"); }
+  });
+  renderSentence(q, true);
+  if(ok){ correct++; streak++; }
+  else { streak = 0; wrongs.push({q, picked: word}); if(mode === "challenge") hearts--; }
+  $("verdict").textContent = ok
+    ? ["정답이에요!","맞았어요!","훌륭해요!","척척박사!"][Math.floor(Math.random()*4)]
+    : (word === null ? "시간이 다 됐어요" : `정답은 ‘${q[2]}’예요`);
+  $("tip").textContent = q[4];
+  $("feedback").classList.remove("hidden");
+  $("hearts").textContent = "♥".repeat(hearts) + "♡".repeat(START_HEARTS - hearts);
+  const last = (mode === "challenge" && hearts <= 0) || idx >= queue.length - 1;
+  $("nextBtn").textContent = last ? "결과 보기" : "다음 문제";
+  $("nextBtn").classList.remove("hidden");
+  $("nextBtn").focus({preventScroll:true});
+}
+
+function next(){
+  const over = (mode === "challenge" && hearts <= 0) || idx >= queue.length - 1;
+  if(over) return finish();
+  idx++; renderQuestion();
+}
+
+function finish(){
+  clearInterval(timerId);
+  const total = mode === "practice" ? queue.length : idx + 1;
+  const key = "best-" + mode;
+  const isBest = correct > store.get(key);
+  if(isBest) store.set(key, correct);
+  const ratio = correct / Math.max(1,total);
+  $("stamp").textContent = "";
+  const stampText = ratio === 1 ? ["참","잘했어요"] : ratio >= .7 ? ["잘","했어요"] : ["다시","해 봐요"];
+  stampText.forEach((t,i) => { if(i) $("stamp").appendChild(document.createElement("br")); $("stamp").append(t); });
+  $("score").textContent = mode === "practice" ? `${correct} / ${total}` : `${correct}문제 정답`;
+  $("resultMsg").textContent =
+    (isBest && correct > 0 ? "새 기록이에요! " : "") +
+    (mode === "challenge" && hearts > 0 ? "모든 문제를 끝까지 풀었어요." :
+     ratio === 1 ? "하나도 틀리지 않았어요." : "틀린 문제를 아래에서 다시 살펴봐요.");
+  const notes = $("notes"); notes.textContent = "";
+  if(wrongs.length){
+    const h = document.createElement("h2"); h.textContent = "오답 노트"; notes.appendChild(h);
+    wrongs.forEach(({q, picked}) => {
+      const d = document.createElement("div"); d.className = "note";
+      const s = document.createElement("div"); s.className = "s";
+      const [a, b] = q[1].split("___");
+      const em = document.createElement("em"); em.textContent = q[2];
+      s.append(a, em, b);
+      const w = document.createElement("div"); w.className = "w";
+      if(picked){ const del = document.createElement("del"); del.textContent = picked; w.append("내가 고른 말: ", del, " · "); }
+      else w.append("시간 초과 · ");
+      w.append(q[4]);
+      d.append(s, w); notes.appendChild(d);
+    });
+  }
+  showBest();
+  show("result");
+}
+
+$("startBtn").addEventListener("click", startGame);
+$("nextBtn").addEventListener("click", next);
+$("againBtn").addEventListener("click", startGame);
+$("homeBtn").addEventListener("click", () => { clearInterval(timerId); show("start"); });
+
+document.addEventListener("keydown", e => {
+  if($("play").classList.contains("hidden")) return;
+  if(!answered && (e.key === "1" || e.key === "2" || e.key === "ArrowLeft" || e.key === "ArrowRight")){
+    const i = (e.key === "1" || e.key === "ArrowLeft") ? 0 : 1;
+    const btn = document.querySelectorAll(".choice")[i];
+    if(btn) answer(btn.dataset.word);
+  } else if(answered && e.key === "Enter" && document.activeElement !== $("nextBtn")){
+    next();
+  }
+});
+</script>
+</body>
+</html>
