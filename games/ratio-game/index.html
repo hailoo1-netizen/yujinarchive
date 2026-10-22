@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>낱말카드 수학 & 비와 비율 게임</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs for Realtime Sync -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration & Context
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'card-math-game-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseSync = {
+            db, auth, appId,
+            doc, setDoc, onSnapshot,
+            currentUser: null,
+            roomUnsubscribe: null
+        };
+
+        // Authenticate automatically
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    window.firebaseSync.currentUser = userCredential.user;
+                } else {
+                    const userCredential = await signInAnonymously(auth);
+                    window.firebaseSync.currentUser = userCredential.user;
+                }
+            } catch (err) {
+                console.warn("Auth initialization fallback:", err);
+            }
+        }
+        initAuth();
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+        
+        /* Card Stencil Style matching provided image */
+        .card-style {
+            background-color: #ffffff;
+            border: 3.5px solid #111827;
+            border-radius: 1.15rem;
+            box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.1);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            font-family: 'Jua', sans-serif;
+        }
+
+        .card-style:hover, .card-style:active {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 16px -3px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-selected {
+            border-color: #2563eb !important;
+            background-color: #eff6ff !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.4) !important;
+        }
+
+        /* Responsive Canvas Container - Optimized for Galaxy Tab 10 Aspect Ratio */
+        #canvas-wrapper {
+            touch-action: none; /* Prevents unwanted scrolling while drawing or dragging */
+            height: clamp(400px, 58vh, 600px);
+        }
+
+        /* Tablet Grid Adjustments for 10-inch screens */
+        @media (min-width: 768px) {
+            .tab-grid-cols-7 {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-6 flex flex-col min-h-screen">
+
+    <!-- Header Navigation (Tablet Optimized Compact Height) -->
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 px-5 py-2.5 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-shapes"></i>
+                </div>
+                <div>
+                    <h1 class="font-jua text-2xl text-slate-800 tracking-wide">낱말카드 수학 교실</h1>
+                    <p class="text-xs text-slate-500 font-medium">갤럭시 태블릿 지원 초등 수학 비와 비율 학습기</p>
+                </div>
+            </div>
+
+            <!-- Score & Class Link Button -->
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSyncModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-xs sm:text-sm px-4 py-2 rounded-xl shadow-md transition flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-satellite-dish animate-pulse text-emerald-300"></i>
+                    <span>클래스 화면 연동</span>
+                </button>
+
+                <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-1.5 rounded-full shadow-sm">
+                    <i class="fa-solid fa-star text-amber-500 text-lg"></i>
+                    <span class="font-jua text-lg text-amber-700" id="star-count">0</span>
+                    <span class="text-xs text-amber-600">점</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- EDIT NUMBER CARD MODAL -->
+    <div id="number-edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeNumberEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg p-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <h3 class="font-jua text-2xl text-slate-800">숫자 카드 값 변경</h3>
+                <p class="text-xs text-slate-500 mt-1" id="number-edit-subtitle">선택한 숫자 카드의 새 값을 입력해주세요.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-jua text-xs text-slate-700 mb-1">새로운 숫자 (자연수)</label>
+                    <input type="number" id="number-edit-input" min="1" placeholder="예: 12" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-jua text-2xl text-center focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 font-jua">
+                    <button onclick="closeNumberEditModal()" class="py-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                        취소
+                    </button>
+                    <button onclick="saveNumberEdit()" class="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition">
+                        적용하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REALTIME SYNC MODAL -->
+    <div id="sync-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleSyncModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg p-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+                <h3 class="font-jua text-2xl text-slate-800">실시간 쌍방향 클래스 공유</h3>
+                <p class="text-xs text-slate-500 mt-1">선생님의 강의 화면 송출 & 학생별 실시간 풀이 화면 모니터링</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Role Selector -->
+                <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl font-jua">
+                    <button id="role-btn-teacher" onclick="setSyncRole('teacher')" class="py-2.5 rounded-xl bg-white text-indigo-600 shadow-sm transition">
+                        👨‍🏫 선생님 (모니터링)
+                    </button>
+                    <button id="role-btn-student" onclick="setSyncRole('student')" class="py-2.5 rounded-xl text-slate-600 transition">
+                        🧑‍🎓 학생 (화면 제출)
+                    </button>
+                </div>
+
+                <!-- Room Code & Student Name Input -->
+                <div class="space-y-3">
+                    <div class="space-y-1">
+                        <label class="block font-jua text-xs text-slate-700">수업 방 코드 (알파벳/숫자)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="sync-room-code" placeholder="예: CLASS101" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 font-jua text-base focus:outline-none focus:border-indigo-500 text-center uppercase tracking-widest">
+                            <button onclick="generateRandomRoomCode()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-jua text-xs px-3 rounded-xl shrink-0">
+                                랜덤 생성
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="student-name-container" class="space-y-1 hidden">
+                        <label class="block font-jua text-xs text-slate-700">학생 이름 / 번호</label>
+                        <input type="text" id="sync-student-name" placeholder="예: 김철수 (1번)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 font-jua text-base focus:outline-none focus:border-indigo-500 text-center">
+                    </div>
+                </div>
+
+                <!-- Status Banner -->
+                <div id="sync-status-msg" class="font-jua text-center text-xs py-2 px-3 rounded-xl bg-slate-100 text-slate-600">
+                    방 코드를 입력하고 [연동 시작]을 누르세요.
+                </div>
+
+                <!-- Teacher Student Submissions Gallery -->
+                <div id="teacher-monitoring-box" class="hidden border-t pt-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-jua text-sm text-indigo-900"><i class="fa-solid fa-users-viewfinder mr-1"></i>실시간 학생 풀이 제출 목록</span>
+                        <span id="student-count-badge" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0명 제출</span>
+                    </div>
+                    <div id="student-grid" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="col-span-2 text-center text-xs text-slate-400 py-6 font-jua">제출된 학생 화면이 이곳에 실시간으로 나타납니다.</p>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="btn-start-sync" onclick="startRealtimeSync()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-lg py-3 rounded-2xl shadow-lg transition">
+                    실시간 연동 시작하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs (Optimized for Tablet Touch Screen) -->
+    <div class="max-w-7xl mx-auto w-full px-5 mt-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-200/80 p-1.5 rounded-2xl font-jua text-center text-base sm:text-lg">
+            <button onclick="switchTab('tab-board')" id="tab-btn-board" class="tab-btn active bg-white text-indigo-600 shadow-sm rounded-xl py-2.5 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-layer-group"></i> <span>카드 보기</span>
+            </button>
+            <button onclick="switchTab('tab-builder')" id="tab-btn-builder" class="tab-btn text-slate-600 hover:text-slate-900 rounded-xl py-2.5 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>문제 만들기</span>
+            </button>
+            <button onclick="switchTab('tab-quiz')" id="tab-btn-quiz" class="tab-btn text-slate-600 hover:text-slate-900 rounded-xl py-2.5 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-gamepad"></i> <span>비율 퀴즈</span>
+            </button>
+            <button onclick="switchTab('tab-canvas')" id="tab-btn-canvas" class="tab-btn text-slate-600 hover:text-slate-900 rounded-xl py-2.5 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-pen-ruler"></i> <span>자유 캔버스</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto w-full px-5 mt-4 flex-grow">
+
+        <!-- TAB 1: CARD GALLERY -->
+        <section id="tab-board" class="tab-content block space-y-5">
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-slate-200 shadow-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-jua text-2xl text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-border-all text-indigo-500"></i> 원본 낱말카드 도감
+                    </h2>
+                    <span class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-bold">총 21개 카드</span>
+                </div>
+
+                <!-- Food Cards -->
+                <div class="mb-5">
+                    <h3 class="font-jua text-lg text-rose-600 mb-2.5 flex items-center gap-2">
+                        <i class="fa-solid fa-utensils"></i> 음식 & 단어 카드 (7종)
+                    </h3>
+                    <div class="grid grid-cols-4 md:grid-cols-7 gap-3" id="board-row-1"></div>
+                </div>
+
+                <!-- Number Cards -->
+                <div class="mb-5">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <h3 class="font-jua text-lg text-emerald-600 flex items-center gap-2">
+                            <i class="fa-solid fa-hashtag"></i> 수 / 개수 카드 (7종)
+                        </h3>
+                        <span class="text-xs text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 font-bold">
+                            ✏️ 터치하여 숫자를 직접 변경할 수 있습니다!
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-4 md:grid-cols-7 gap-3" id="board-row-2"></div>
+                </div>
+
+                <!-- Ratio Cards -->
+                <div>
+                    <h3 class="font-jua text-lg text-amber-600 mb-2.5 flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced"></i> 비 / 비율 카드 (7종)
+                    </h3>
+                    <div class="grid grid-cols-4 md:grid-cols-7 gap-3" id="board-row-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PROBLEM BUILDER -->
+        <section id="tab-builder" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left: Card Selector -->
+                <div class="lg:col-span-7 bg-white/80 backdrop-blur-sm p-6 rounded-3xl border border-slate-200 shadow-lg space-y-5">
+                    <div class="border-b pb-3">
+                        <h2 class="font-jua text-2xl text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-hand-pointer text-indigo-500"></i> 카드를 고르세요
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">원하는 단어, 숫자, 비율 카드를 골라 문제를 자동으로 조합해보세요.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-jua text-sm text-slate-600 mb-1.5">1. 단어/음식 선택</label>
+                        <div class="flex flex-wrap gap-2.5" id="builder-foods"></div>
+                    </div>
+
+                    <div>
+                        <label class="block font-jua text-sm text-slate-600 mb-1.5">2. 전체 개수 선택</label>
+                        <div class="flex flex-wrap gap-2.5" id="builder-numbers"></div>
+                    </div>
+
+                    <div>
+                        <label class="block font-jua text-sm text-slate-600 mb-1.5">3. 분배 비율 선택</label>
+                        <div class="flex flex-wrap gap-2.5" id="builder-ratios"></div>
+                    </div>
+                </div>
+
+                <!-- Right: Generated Question & Interactive Input -->
+                <div class="lg:col-span-5 bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3 border-b border-slate-700/60 pb-3">
+                            <span class="bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 문제 생성기
+                            </span>
+                        </div>
+
+                        <!-- Card Combination Display -->
+                        <div class="flex items-center justify-center gap-2 my-3 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                            <span id="slot-food" class="font-jua text-base bg-rose-500/20 text-rose-300 border border-rose-500/30 px-3 py-1 rounded-xl">단어</span>
+                            <span class="text-slate-500 font-bold">+</span>
+                            <span id="slot-number" class="font-jua text-base bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-xl">개수</span>
+                            <span class="text-slate-500 font-bold">+</span>
+                            <span id="slot-ratio" class="font-jua text-base bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-xl">비율</span>
+                        </div>
+
+                        <!-- Question Box -->
+                        <div class="bg-white/10 backdrop-blur-md border border-white/15 p-5 rounded-2xl my-3">
+                            <h3 class="text-xs font-bold text-slate-400 mb-2 uppercase">만들어진 수학 문제</h3>
+                            <p id="builder-question" class="font-jua text-xl leading-relaxed text-indigo-100 min-h-[75px] flex items-center">
+                                왼쪽에서 카드를 선택하면 여기에 수학 문장제 문제가 완성됩니다!
+                            </p>
+                        </div>
+
+                        <!-- User Answer Input -->
+                        <div id="builder-interactive" class="hidden space-y-3 mt-3">
+                            <label id="builder-input-label" class="block font-jua text-sm text-indigo-200">정답을 구해보세요!</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="builder-answer-input" placeholder="숫자 입력" class="w-full bg-slate-800/90 border border-slate-600 rounded-xl px-4 py-2.5 text-white font-jua text-lg focus:outline-none focus:border-indigo-400">
+                                <button onclick="checkBuilderAnswer()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-jua px-5 py-2.5 rounded-xl transition shadow-lg shrink-0">
+                                    확인
+                                </button>
+                            </div>
+                            <div id="builder-feedback" class="font-jua text-sm min-h-[24px]"></div>
+                        </div>
+                    </div>
+
+                    <div id="builder-explanation" class="hidden mt-3 pt-3 border-t border-slate-700 text-xs text-slate-300 leading-relaxed bg-slate-800/50 p-3 rounded-xl"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: QUIZ GAME -->
+        <section id="tab-quiz" class="tab-content hidden space-y-6">
+            <div class="max-w-2xl mx-auto bg-white/90 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xl">
+                <div class="flex items-center justify-between border-b pb-4 mb-6">
+                    <div>
+                        <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full uppercase">비율 퀴즈 게임</span>
+                        <h2 class="font-jua text-2xl text-slate-800 mt-1">수학 문제 맞추기</h2>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400">연속 성공</span>
+                        <div class="font-jua text-2xl text-indigo-600" id="quiz-streak">0회</div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50/80 border border-indigo-100 p-6 rounded-2xl mb-6">
+                    <p class="text-xs font-bold text-indigo-500 mb-1">문제</p>
+                    <p id="quiz-question" class="font-jua text-xl sm:text-2xl text-slate-800 leading-snug">
+                        문제를 불러오는 중입니다...
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6" id="quiz-options"></div>
+
+                <div id="quiz-feedback" class="font-jua text-center text-lg min-h-[32px] mb-4"></div>
+
+                <div class="flex justify-end">
+                    <button onclick="nextQuizQuestion()" id="btn-next-quiz" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-lg px-6 py-3 rounded-2xl shadow-lg transition flex items-center gap-2">
+                        다음 문제 <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: FREEFORM CANVAS (Galaxy Tab S Series Scaled) -->
+        <section id="tab-canvas" class="tab-content hidden space-y-4">
+            <div class="bg-white/80 backdrop-blur-sm p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-lg space-y-3.5">
+                
+                <!-- Controls Header -->
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                    <div>
+                        <h2 class="font-jua text-2xl text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-pen-ruler text-indigo-500"></i> 자유 배치 & 필기 캔버스
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">카드를 터치하여 추가하고 S펜이나 손가락으로 자유롭게 식을 써보세요.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Student Screen Submit Button -->
+                        <button id="btn-submit-student-screen" onclick="submitStudentScreenToTeacher()" class="hidden text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-jua font-bold px-3.5 py-2 rounded-xl transition items-center gap-1.5 shadow animate-bounce">
+                            <i class="fa-solid fa-paper-plane"></i> <span>선생님께 내 풀이 제출하기</span>
+                        </button>
+                        <button onclick="exportCanvasToPNG()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-jua font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-download"></i> PNG 문제 저장
+                        </button>
+                        <button onclick="clearFullCanvas()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> 전체 지우기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="bg-slate-100/90 p-3 rounded-2xl border border-slate-200 flex flex-col gap-2.5">
+                    <!-- Row 1: Mode Switch & Pen Settings -->
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-bold text-slate-500 mr-1">도구 모드:</span>
+                            <button id="mode-btn-scroll" onclick="setCanvasMode('scroll')" class="bg-slate-700 text-white font-jua text-sm px-3.5 py-1.5 rounded-xl transition shadow flex items-center gap-1">
+                                <i class="fa-solid fa-up-down-left-right"></i> 화면 스크롤
+                            </button>
+                            <button id="mode-btn-move" onclick="setCanvasMode('move')" class="bg-white text-slate-700 hover:bg-slate-200 border border-slate-300 font-jua text-sm px-3.5 py-1.5 rounded-xl transition flex items-center gap-1">
+                                <i class="fa-solid fa-hand"></i> 카드 이동/선택
+                            </button>
+                            <button id="mode-btn-pen" onclick="setCanvasMode('pen')" class="bg-white text-slate-700 hover:bg-slate-200 border border-slate-300 font-jua text-sm px-3.5 py-1.5 rounded-xl transition flex items-center gap-1">
+                                <i class="fa-solid fa-pen"></i> 펜 필기
+                            </button>
+                            <button id="mode-btn-eraser" onclick="setCanvasMode('eraser')" class="bg-white text-slate-700 hover:bg-slate-200 border border-slate-300 font-jua text-sm px-3.5 py-1.5 rounded-xl transition flex items-center gap-1">
+                                <i class="fa-solid fa-eraser"></i> 지우개
+                            </button>
+                        </div>
+
+                        <!-- Pen Options -->
+                        <div class="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-slate-300">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs text-slate-500">색상:</span>
+                                <input type="color" id="pen-color" value="#1d4ed8" class="w-6 h-6 border-0 rounded cursor-pointer bg-transparent">
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs text-slate-500">두께:</span>
+                                <input type="range" id="pen-size" min="2" max="24" value="4" class="w-16 accent-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Add Text Box -->
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-200">
+                        <input type="text" id="canvas-text-input" placeholder="문제 설명이나 수식을 입력하세요" class="flex-grow bg-white border border-slate-300 rounded-xl px-3.5 py-1.5 font-jua text-sm focus:outline-none focus:border-indigo-500">
+                        <button onclick="addTextToCanvas()" class="bg-slate-800 hover:bg-slate-900 text-white font-jua text-sm px-4 py-1.5 rounded-xl transition shrink-0">
+                            + 텍스트 추가
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Palette of Cards (Tap or Drag to Add) -->
+                <div class="bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-bold text-indigo-700"><i class="fa-solid fa-cards mr-1"></i>낱말카드 보관함</span>
+                        <span class="text-[11px] text-slate-500">터치(클릭)하면 캔버스에 추가됩니다</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2" id="canvas-palette"></div>
+                </div>
+
+                <!-- Interactive Canvas Container (Resized for Galaxy Tab Display Ratio) -->
+                <div id="canvas-wrapper" class="relative w-full bg-white border-2 border-slate-300 rounded-2xl shadow-inner overflow-hidden select-none">
+                    <!-- Pen Drawing Canvas Layer -->
+                    <canvas id="pen-canvas" class="absolute inset-0 w-full h-full z-10"></canvas>
+
+                    <!-- Draggable Cards / Text HTML Overlay Layer -->
+                    <div id="canvas-elements-layer" class="absolute inset-0 z-20 pointer-events-none"></div>
+
+                    <!-- Empty Placeholder Helper -->
+                    <div id="canvas-empty-hint" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300 pointer-events-none z-0">
+                        <i class="fa-solid fa-arrow-up-from-bracket text-4xl mb-2"></i>
+                        <p class="font-jua text-base text-slate-400">상단 카드를 터치하여 배치하고 S펜으로 식을 작성하세요</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-auto py-3 text-center text-xs text-slate-400">
+        <p>낱말카드 기반 초등 수학 비와 비율 실습 시뮬레이터 (태블릿 최적화 버전)</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // Global App State
+        const state = {
+            foods: ['사과', '피자', '햄버거', '굴', '빵', '떡', '사탕'],
+            numbers: [3, 5, 7, 8, 9, 10, 45],
+            ratios: ['2:1', '2:3', '4:5', '5:3', '8:2', '4:3', '3:7'],
+            editingNumberIndex: null,
+            
+            // Builder Selection State
+            selectedFood: '사과',
+            selectedNumber: 10,
+            selectedRatio: '2:1',
+            
+            // Quiz State
+            quizScore: 0,
+            quizStreak: 0,
+            currentQuiz: null,
+            
+            // Canvas State
+            canvasMode: 'scroll', // 'scroll', 'move', 'pen', 'eraser'
+            penColor: '#1d4ed8',
+            penSize: 4,
+            canvasCards: [],
+            canvasTexts: [],
+            
+            // Realtime Sync
+            syncRole: 'teacher', // 'teacher' or 'student'
+            roomCode: '',
+            studentName: '',
+            isSyncing: false
+        };
+
+        // DOM Loaded Handler
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCardBoard();
+            renderBuilderOptions();
+            updateBuilderQuestion();
+            generateNextQuiz();
+            initCanvasSystem();
+            renderCanvasPalette();
+            
+            // Default tab setup
+            switchTab('tab-board');
+        });
+
+        // -------------------------------------------------------------
+        // TAB NAVIGATION SYSTEM
+        // -------------------------------------------------------------
+        window.switchTab = function(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+
+            // Activate target tab content
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.classList.add('block');
+            }
+
+            // Activate target tab button
+            const btnMap = {
+                'tab-board': 'tab-btn-board',
+                'tab-builder': 'tab-btn-builder',
+                'tab-quiz': 'tab-btn-quiz',
+                'tab-canvas': 'tab-btn-canvas'
+            };
+            const activeBtn = document.getElementById(btnMap[tabId]);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            // Canvas resize check when entering canvas tab
+            if (tabId === 'tab-canvas') {
+                setTimeout(() => {
+                    resizePenCanvas();
+                }, 50);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // TAB 1: CARD GALLERY & NUMBER EDITING
+        // -------------------------------------------------------------
+        function renderCardBoard() {
+            const row1 = document.getElementById('board-row-1');
+            const row2 = document.getElementById('board-row-2');
+            const row3 = document.getElementById('board-row-3');
+
+            if (!row1 || !row2 || !row3) return;
+
+            // Row 1: Food Cards
+            row1.innerHTML = state.foods.map((food) => `
+                <div class="card-style p-3 sm:p-4 text-center cursor-default bg-rose-50/30">
+                    <div class="font-jua text-xl sm:text-2xl text-slate-800">${food}</div>
+                </div>
+            `).join('');
+
+            // Row 2: Editable Number Cards
+            row2.innerHTML = state.numbers.map((num, idx) => `
+                <div onclick="openNumberEditModal(${idx})" class="card-style p-3 sm:p-4 text-center cursor-pointer bg-emerald-50/40 hover:border-emerald-500 transition group relative">
+                    <span class="absolute top-1 right-1.5 text-[10px] text-emerald-600 opacity-70 group-hover:opacity-100">✏️</span>
+                    <div class="font-jua text-xl sm:text-2xl text-emerald-800">${num}</div>
+                </div>
+            `).join('');
+
+            // Row 3: Ratio Cards
+            row3.innerHTML = state.ratios.map((ratio) => `
+                <div class="card-style p-3 sm:p-4 text-center cursor-default bg-amber-50/30">
+                    <div class="font-jua text-xl sm:text-2xl text-amber-800">${ratio}</div>
+                </div>
+            `).join('');
+        }
+
+        window.openNumberEditModal = function(index) {
+            state.editingNumberIndex = index;
+            const input = document.getElementById('number-edit-input');
+            const modal = document.getElementById('number-edit-modal');
+            const subtitle = document.getElementById('number-edit-subtitle');
+            
+            if (input && modal) {
+                input.value = state.numbers[index];
+                if (subtitle) {
+                    subtitle.innerText = `${index + 1}번째 수 카드의 새 값을 입력하세요.`;
+                }
+                modal.classList.remove('hidden');
+                setTimeout(() => input.focus(), 100);
+            }
+        };
+
+        window.closeNumberEditModal = function() {
+            const modal = document.getElementById('number-edit-modal');
+            if (modal) modal.classList.add('hidden');
+            state.editingNumberIndex = null;
+        };
+
+        window.saveNumberEdit = function() {
+            const input = document.getElementById('number-edit-input');
+            if (state.editingNumberIndex !== null && input) {
+                const newVal = parseInt(input.value, 10);
+                if (!isNaN(newVal) && newVal > 0) {
+                    state.numbers[state.editingNumberIndex] = newVal;
+                    
+                    // If selected number in builder was modified, update selection
+                    if (state.selectedNumber === state.numbers[state.editingNumberIndex]) {
+                        state.selectedNumber = newVal;
+                    }
+                    
+                    // Refresh UI components
+                    renderCardBoard();
+                    renderBuilderOptions();
+                    updateBuilderQuestion();
+                    renderCanvasPalette();
+                    closeNumberEditModal();
+                } else {
+                    alert('1 이상의 자연수를 입력해주세요.');
+                }
+            }
+        };
+
+        // -------------------------------------------------------------
+        // TAB 2: PROBLEM BUILDER LOGIC
+        // -------------------------------------------------------------
+        function renderBuilderOptions() {
+            const foodsContainer = document.getElementById('builder-foods');
+            const numbersContainer = document.getElementById('builder-numbers');
+            const ratiosContainer = document.getElementById('builder-ratios');
+
+            if (!foodsContainer || !numbersContainer || !ratiosContainer) return;
+
+            // Render Foods
+            foodsContainer.innerHTML = state.foods.map(f => `
+                <button onclick="selectBuilderCard('food', '${f}')" class="px-4 py-2 rounded-xl font-jua text-base border-2 transition ${state.selectedFood === f ? 'bg-rose-500 text-white border-rose-600 shadow-md scale-105' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">
+                    ${f}
+                </button>
+            `).join('');
+
+            // Render Numbers
+            numbersContainer.innerHTML = state.numbers.map(n => `
+                <button onclick="selectBuilderCard('number', ${n})" class="px-4 py-2 rounded-xl font-jua text-base border-2 transition ${state.selectedNumber === n ? 'bg-emerald-500 text-white border-emerald-600 shadow-md scale-105' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">
+                    ${n}개
+                </button>
+            `).join('');
+
+            // Render Ratios
+            ratiosContainer.innerHTML = state.ratios.map(r => `
+                <button onclick="selectBuilderCard('ratio', '${r}')" class="px-4 py-2 rounded-xl font-jua text-base border-2 transition ${state.selectedRatio === r ? 'bg-amber-500 text-white border-amber-600 shadow-md scale-105' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">
+                    ${r}
+                </button>
+            `).join('');
+        }
+
+        window.selectBuilderCard = function(type, val) {
+            if (type === 'food') state.selectedFood = val;
+            if (type === 'number') state.selectedNumber = val;
+            if (type === 'ratio') state.selectedRatio = val;
+
+            renderBuilderOptions();
+            updateBuilderQuestion();
+        };
+
+        function updateBuilderQuestion() {
+            const slotFood = document.getElementById('slot-food');
+            const slotNumber = document.getElementById('slot-number');
+            const slotRatio = document.getElementById('slot-ratio');
+            const questionEl = document.getElementById('builder-question');
+            const interactiveEl = document.getElementById('builder-interactive');
+            const inputLabel = document.getElementById('builder-input-label');
+            const feedbackEl = document.getElementById('builder-feedback');
+            const expEl = document.getElementById('builder-explanation');
+
+            if (slotFood) slotFood.innerText = state.selectedFood;
+            if (slotNumber) slotNumber.innerText = `${state.selectedNumber}개`;
+            if (slotRatio) slotRatio.innerText = state.selectedRatio;
+
+            const [a, b] = state.selectedRatio.split(':').map(Number);
+            const sumParts = a + b;
+            const total = state.selectedNumber;
+
+            // Generate clean problem
+            const isDivisible = (total % sumParts === 0);
+            const questionText = `선생님이 ${state.selectedFood} ${total}개를 두 모둠에게 ${a} : ${b} 비율로 나누어 주려고 합니다. 첫 번째 모둠이 받는 ${state.selectedFood}는 모두 몇 개일까요?`;
+
+            if (questionEl) questionEl.innerText = questionText;
+            if (interactiveEl) interactiveEl.classList.remove('hidden');
+            if (feedbackEl) feedbackEl.innerText = '';
+            
+            if (inputLabel) {
+                inputLabel.innerText = isDivisible ? 
+                    `정답을 구해보세요! (${total}개를 ${a}:${b}로 분배)` : 
+                    `💡 참고: ${total}개는 ${sumParts}의 배수가 아니어서 소수/분수 답이 나올 수 있습니다.`;
+            }
+
+            const answerVal = (total * a) / sumParts;
+            if (expEl) {
+                expEl.classList.remove('hidden');
+                expEl.innerHTML = `
+                    <div class="font-bold text-indigo-300 mb-1"><i class="fa-solid fa-lightbulb mr-1"></i>풀이 힌트 & 정답</div>
+                    • 비의 총합: ${a} + ${b} = ${sumParts}<br>
+                    • 첫 번째 모둠의 몫 = ${total} × (${a} / ${sumParts}) = <span class="font-bold text-amber-300">${Number.isInteger(answerVal) ? answerVal : answerVal.toFixed(1)}개</span>
+                `;
+            }
+        }
+
+        window.checkBuilderAnswer = function() {
+            const input = document.getElementById('builder-answer-input');
+            const feedbackEl = document.getElementById('builder-feedback');
+            if (!input || !feedbackEl) return;
+
+            const userAns = parseFloat(input.value);
+            const [a, b] = state.selectedRatio.split(':').map(Number);
+            const expected = (state.selectedNumber * a) / (a + b);
+
+            if (isNaN(userAns)) {
+                feedbackEl.innerHTML = '<span class="text-amber-400">숫자를 입력해주세요!</span>';
+                return;
+            }
+
+            if (Math.abs(userAns - expected) < 0.01) {
+                feedbackEl.innerHTML = '<span class="text-emerald-400"><i class="fa-solid fa-circle-check mr-1"></i>정답입니다! 참 잘했어요! 🎉</span>';
+                addStars(10);
+            } else {
+                feedbackEl.innerHTML = `<span class="text-rose-400"><i class="fa-solid fa-circle-xmark mr-1"></i>아쉬워요! 정답은 ${Number.isInteger(expected) ? expected : expected.toFixed(1)}개 입니다.</span>`;
+            }
+        };
+
+        // -------------------------------------------------------------
+        // TAB 3: RATIO QUIZ GAME LOGIC (Always Integer Answers)
+        // -------------------------------------------------------------
+        function generateNextQuiz() {
+            const food = state.foods[Math.floor(Math.random() * state.foods.length)];
+            const ratioStr = state.ratios[Math.floor(Math.random() * state.ratios.length)];
+            const [a, b] = ratioStr.split(':').map(Number);
+            const sumParts = a + b;
+
+            // Guarantee an integer answer by picking a multiple of (a + b)
+            const multiplier = Math.floor(Math.random() * 6) + 1; // 1 to 6
+            const total = sumParts * multiplier;
+            const correctAnswer = a * multiplier;
+
+            // Generate options
+            const options = new Set([correctAnswer]);
+            while (options.size < 4) {
+                const wrong = Math.max(1, correctAnswer + (Math.floor(Math.random() * 7) - 3));
+                if (wrong !== correctAnswer) options.add(wrong);
+            }
+
+            state.currentQuiz = {
+                food, total, a, b, ratioStr,
+                correctAnswer,
+                options: Array.from(options).sort(() => Math.random() - 0.5)
+            };
+
+            renderQuizUI();
+        }
+
+        function renderQuizUI() {
+            const q = state.currentQuiz;
+            const qEl = document.getElementById('quiz-question');
+            const optsEl = document.getElementById('quiz-options');
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const btnNext = document.getElementById('btn-next-quiz');
+
+            if (!q || !qEl || !optsEl) return;
+
+            qEl.innerText = `${q.food} ${q.total}개를 두 사람에게 ${q.a} : ${q.b} 비율로 나누어 가졌습니다. 앞 사람이 가지게 되는 ${q.food}는 모두 몇 개일까요?`;
+            
+            optsEl.innerHTML = q.options.map(opt => `
+                <button onclick="submitQuizAnswer(${opt})" class="quiz-opt-btn bg-slate-50 hover:bg-indigo-50 border-2 border-slate-200 hover:border-indigo-400 rounded-2xl py-4 font-jua text-2xl text-slate-800 transition active:scale-95 shadow-sm">
+                    ${opt}개
+                </button>
+            `).join('');
+
+            if (feedbackEl) feedbackEl.innerText = '';
+            if (btnNext) btnNext.classList.add('hidden');
+        }
+
+        window.submitQuizAnswer = function(chosen) {
+            const q = state.currentQuiz;
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const btnNext = document.getElementById('btn-next-quiz');
+            const streakEl = document.getElementById('quiz-streak');
+
+            if (!q) return;
+
+            // Disable all option buttons
+            document.querySelectorAll('.quiz-opt-btn').forEach(b => b.disabled = true);
+
+            if (chosen === q.correctAnswer) {
+                state.quizStreak += 1;
+                addStars(20);
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = '<span class="text-emerald-600 animate-bounce block"><i class="fa-solid fa-star mr-1"></i>정답입니다! 완벽해요!</span>';
+                }
+            } else {
+                state.quizStreak = 0;
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<span class="text-rose-500"><i class="fa-solid fa-triangle-exclamation mr-1"></i>틀렸습니다! 정답은 ${q.correctAnswer}개 입니다.</span>`;
+                }
+            }
+
+            if (streakEl) streakEl.innerText = `${state.quizStreak}회`;
+            if (btnNext) btnNext.classList.remove('hidden');
+        };
+
+        window.nextQuizQuestion = function() {
+            generateNextQuiz();
+        };
+
+        function addStars(count) {
+            state.quizScore += count;
+            const starCountEl = document.getElementById('star-count');
+            if (starCountEl) starCountEl.innerText = state.quizScore;
+        }
+
+        // -------------------------------------------------------------
+        // TAB 4: FREEFORM CANVAS (S-Pen, Touch, Scroll & Capture)
+        // -------------------------------------------------------------
+        let penCanvas, penCtx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+
+        function initCanvasSystem() {
+            penCanvas = document.getElementById('pen-canvas');
+            if (!penCanvas) return;
+            penCtx = penCanvas.getContext('2d');
+
+            resizePenCanvas();
+            window.addEventListener('resize', resizePenCanvas);
+
+            // Setup Color & Size Event Listeners
+            const colorPicker = document.getElementById('pen-color');
+            const sizePicker = document.getElementById('pen-size');
+            
+            if (colorPicker) colorPicker.addEventListener('change', (e) => state.penColor = e.target.value);
+            if (sizePicker) sizePicker.addEventListener('input', (e) => state.penSize = parseInt(e.target.value, 10));
+
+            // Pointer Drawing Events for Tablets & Stylus
+            penCanvas.addEventListener('pointerdown', startDrawing);
+            penCanvas.addEventListener('pointermove', draw);
+            penCanvas.addEventListener('pointerup', stopDrawing);
+            penCanvas.addEventListener('pointercancel', stopDrawing);
+        }
+
+        function resizePenCanvas() {
+            if (!penCanvas) return;
+            const wrapper = document.getElementById('canvas-wrapper');
+            if (!wrapper) return;
+
+            const rect = wrapper.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+
+            // Preserve canvas drawing on resize
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = penCanvas.width;
+            tempCanvas.height = penCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (penCanvas.width > 0 && penCanvas.height > 0) {
+                tempCtx.drawImage(penCanvas, 0, 0);
+            }
+
+            penCanvas.width = rect.width;
+            penCanvas.height = rect.height;
+
+            if (tempCanvas.width > 0 && tempCanvas.height > 0) {
+                penCtx.drawImage(tempCanvas, 0, 0);
+            }
+        }
+
+        window.setCanvasMode = function(mode) {
+            state.canvasMode = mode;
+            
+            const btnScroll = document.getElementById('mode-btn-scroll');
+            const btnMove = document.getElementById('mode-btn-move');
+            const btnPen = document.getElementById('mode-btn-pen');
+            const btnEraser = document.getElementById('mode-btn-eraser');
+            const canvasWrapper = document.getElementById('canvas-wrapper');
+
+            [btnScroll, btnMove, btnPen, btnEraser].forEach(b => {
+                if (b) {
+                    b.classList.remove('bg-slate-700', 'bg-indigo-600', 'text-white');
+                    b.classList.add('bg-white', 'text-slate-700');
+                }
+            });
+
+            if (canvasWrapper) {
+                if (mode === 'scroll') {
+                    canvasWrapper.style.touchAction = 'pan-y';
+                    if (btnScroll) btnScroll.classList.add('bg-slate-700', 'text-white');
+                } else if (mode === 'move') {
+                    canvasWrapper.style.touchAction = 'none';
+                    if (btnMove) btnMove.classList.add('bg-indigo-600', 'text-white');
+                } else if (mode === 'pen') {
+                    canvasWrapper.style.touchAction = 'none';
+                    if (btnPen) btnPen.classList.add('bg-indigo-600', 'text-white');
+                } else if (mode === 'eraser') {
+                    canvasWrapper.style.touchAction = 'none';
+                    if (btnEraser) btnEraser.classList.add('bg-indigo-600', 'text-white');
+                }
+            }
+        };
+
+        function getCanvasCoords(e) {
+            const rect = penCanvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            if (state.canvasMode !== 'pen' && state.canvasMode !== 'eraser') return;
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function draw(e) {
+            if (!isDrawing || (state.canvasMode !== 'pen' && state.canvasMode !== 'eraser')) return;
+            const coords = getCanvasCoords(e);
+
+            penCtx.beginPath();
+            penCtx.moveTo(lastX, lastY);
+            penCtx.lineTo(coords.x, coords.y);
+
+            if (state.canvasMode === 'eraser') {
+                penCtx.globalCompositeOperation = 'destination-out';
+                penCtx.lineWidth = state.penSize * 4;
+            } else {
+                penCtx.globalCompositeOperation = 'source-over';
+                penCtx.strokeStyle = state.penColor;
+                penCtx.lineWidth = state.penSize;
+                penCtx.lineCap = 'round';
+                penCtx.lineJoin = 'round';
+            }
+
+            penCtx.stroke();
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function renderCanvasPalette() {
+            const palette = document.getElementById('canvas-palette');
+            if (!palette) return;
+
+            const allCards = [
+                ...state.foods.map(f => ({ label: f, bg: 'bg-rose-100 border-rose-400 text-rose-900' })),
+                ...state.numbers.map(n => ({ label: `${n}`, bg: 'bg-emerald-100 border-emerald-400 text-emerald-900' })),
+                ...state.ratios.map(r => ({ label: r, bg: 'bg-amber-100 border-amber-400 text-amber-900' }))
+            ];
+
+            palette.innerHTML = allCards.map((c) => `
+                <button onclick="addCardToCanvas('${c.label}', '${c.bg}')" class="${c.bg} border-2 rounded-xl px-3 py-1.5 font-jua text-sm shadow-sm transition active:scale-95">
+                    + ${c.label}
+                </button>
+            `).join('');
+        }
+
+        window.addCardToCanvas = function(label, bgStyle) {
+            const hint = document.getElementById('canvas-empty-hint');
+            if (hint) hint.classList.add('hidden');
+
+            const layer = document.getElementById('canvas-elements-layer');
+            if (!layer) return;
+
+            const cardId = 'card-' + Date.now();
+            const cardEl = document.createElement('div');
+            cardEl.id = cardId;
+            cardEl.className = `absolute pointer-events-auto cursor-move card-style px-4 py-2 font-jua text-2xl flex items-center gap-2 shadow-lg ${bgStyle}`;
+            cardEl.style.left = '40px';
+            cardEl.style.top = '40px';
+            
+            cardEl.innerHTML = `
+                <span>${label}</span>
+                <button onclick="removeCanvasElement('${cardId}')" class="text-xs text-rose-500 hover:text-rose-700 ml-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            makeElementDraggable(cardEl);
+            layer.appendChild(cardEl);
+        };
+
+        window.addTextToCanvas = function() {
+            const input = document.getElementById('canvas-text-input');
+            if (!input || !input.value.trim()) return;
+
+            const hint = document.getElementById('canvas-empty-hint');
+            if (hint) hint.classList.add('hidden');
+
+            const layer = document.getElementById('canvas-elements-layer');
+            if (!layer) return;
+
+            const textId = 'text-' + Date.now();
+            const textEl = document.createElement('div');
+            textEl.id = textId;
+            textEl.className = `absolute pointer-events-auto cursor-move bg-yellow-100/90 border border-yellow-300 rounded-xl px-3 py-1.5 font-jua text-lg text-slate-800 shadow flex items-center gap-2`;
+            textEl.style.left = '60px';
+            textEl.style.top = '100px';
+
+            textEl.innerHTML = `
+                <span>${input.value.trim()}</span>
+                <button onclick="removeCanvasElement('${textId}')" class="text-xs text-rose-500 hover:text-rose-700 ml-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            makeElementDraggable(textEl);
+            layer.appendChild(textEl);
+            input.value = '';
+        };
+
+        window.removeCanvasElement = function(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        };
+
+        function makeElementDraggable(el) {
+            let active = false;
+            let currentX, currentY, initialX, initialY;
+            let xOffset = 0, yOffset = 0;
+
+            el.addEventListener('pointerdown', dragStart);
+
+            function dragStart(e) {
+                if (state.canvasMode === 'pen' || state.canvasMode === 'eraser') return;
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+
+                active = true;
+                document.addEventListener('pointermove', drag);
+                document.addEventListener('pointerup', dragEnd);
+            }
+
+            function drag(e) {
+                if (!active) return;
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+
+                el.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+            }
+
+            function dragEnd() {
+                initialX = currentX;
+                initialY = currentY;
+                active = false;
+                document.removeEventListener('pointermove', drag);
+                document.removeEventListener('pointerup', dragEnd);
+            }
+        }
+
+        window.clearFullCanvas = function() {
+            if (penCtx && penCanvas) {
+                penCtx.clearRect(0, 0, penCanvas.width, penCanvas.height);
+            }
+            const layer = document.getElementById('canvas-elements-layer');
+            if (layer) layer.innerHTML = '';
+
+            const hint = document.getElementById('canvas-empty-hint');
+            if (hint) hint.classList.remove('hidden');
+        };
+
+        window.exportCanvasToPNG = function() {
+            if (!penCanvas) return;
+
+            // Render composite export canvas
+            const expCanvas = document.createElement('canvas');
+            expCanvas.width = penCanvas.width;
+            expCanvas.height = penCanvas.height;
+            const expCtx = expCanvas.getContext('2d');
+
+            // Draw Background
+            expCtx.fillStyle = '#ffffff';
+            expCtx.fillRect(0, 0, expCanvas.width, expCanvas.height);
+
+            // Draw Pen Strokes
+            expCtx.drawImage(penCanvas, 0, 0);
+
+            // Render Card / Text Elements
+            const layer = document.getElementById('canvas-elements-layer');
+            if (layer) {
+                const elements = layer.children;
+                for (let el of elements) {
+                    const rect = el.getBoundingClientRect();
+                    const layerRect = layer.getBoundingClientRect();
+                    const x = rect.left - layerRect.left;
+                    const y = rect.top - layerRect.top;
+
+                    expCtx.save();
+                    expCtx.fillStyle = '#f8fafc';
+                    expCtx.strokeStyle = '#1e293b';
+                    expCtx.lineWidth = 3;
+                    
+                    // Simple Box Representation
+                    expCtx.beginPath();
+                    expCtx.roundRect(x, y, rect.width, rect.height, 12);
+                    expCtx.fill();
+                    expCtx.stroke();
+
+                    // Text
+                    expCtx.fillStyle = '#0f172a';
+                    expCtx.font = '20px Jua, sans-serif';
+                    const textStr = el.innerText.replace('x', '').trim();
+                    expCtx.fillText(textStr, x + 12, y + rect.height / 2 + 6);
+                    expCtx.restore();
+                }
+            }
+
+            // Download Trigger
+            const link = document.getElementById('download-link') || document.createElement('a');
+            link.download = `math-card-problem-${Date.now()}.png`;
+            link.href = expCanvas.toDataURL('image/png');
+            link.click();
+        };
+
+        // -------------------------------------------------------------
+        // REALTIME SYNC (Teacher / Student Class Mode)
+        // -------------------------------------------------------------
+        window.toggleSyncModal = function() {
+            const modal = document.getElementById('sync-modal');
+            if (modal) modal.classList.toggle('hidden');
+        };
+
+        window.setSyncRole = function(role) {
+            state.syncRole = role;
+            const btnTeacher = document.getElementById('role-btn-teacher');
+            const btnStudent = document.getElementById('role-btn-student');
+            const studentNameBox = document.getElementById('student-name-container');
+            const teacherMonitoringBox = document.getElementById('teacher-monitoring-box');
+            const btnSubmitStudentScreen = document.getElementById('btn-submit-student-screen');
+
+            if (role === 'teacher') {
+                btnTeacher?.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnStudent?.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                studentNameBox?.classList.add('hidden');
+                teacherMonitoringBox?.classList.remove('hidden');
+                btnSubmitStudentScreen?.classList.add('hidden');
+            } else {
+                btnStudent?.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnTeacher?.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                studentNameBox?.classList.remove('hidden');
+                teacherMonitoringBox?.classList.add('hidden');
+                btnSubmitStudentScreen?.classList.remove('hidden');
+            }
+        };
+
+        window.generateRandomRoomCode = function() {
+            const codeInput = document.getElementById('sync-room-code');
+            if (codeInput) {
+                const randCode = 'CLASS' + Math.floor(100 + Math.random() * 900);
+                codeInput.value = randCode;
+            }
+        };
+
+        window.startRealtimeSync = function() {
+            const roomCodeInput = document.getElementById('sync-room-code');
+            const statusMsg = document.getElementById('sync-status-msg');
+            const studentNameInput = document.getElementById('sync-student-name');
+
+            if (!roomCodeInput || !roomCodeInput.value.trim()) {
+                alert('방 코드를 입력해주세요!');
+                return;
+            }
+
+            state.roomCode = roomCodeInput.value.trim().toUpperCase();
+            state.studentName = studentNameInput ? studentNameInput.value.trim() : '';
+            state.isSyncing = true;
+
+            if (statusMsg) {
+                statusMsg.className = "font-jua text-center text-xs py-2 px-3 rounded-xl bg-emerald-100 text-emerald-700";
+                statusMsg.innerText = `🟢 [${state.roomCode}] 방에 ${state.syncRole === 'teacher' ? '선생님' : '학생'} 모드로 연결되었습니다.`;
+            }
+
+            // Realtime listening handling
+            if (window.firebaseSync && window.firebaseSync.db) {
+                setupFirebaseListeners();
+            }
+        };
+
+        function setupFirebaseListeners() {
+            const { db, doc, onSnapshot } = window.firebaseSync;
+            if (!db || !state.roomCode) return;
+
+            // Room listener setup
+            const roomRef = doc(db, 'rooms', state.roomCode);
+            onSnapshot(roomRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    if (state.syncRole === 'student' && data.numbers) {
+                        state.numbers = data.numbers;
+                        renderCardBoard();
+                        renderBuilderOptions();
+                    }
+                }
+            });
+        }
+
+        window.submitStudentScreenToTeacher = function() {
+            if (!state.isSyncing) {
+                alert('먼저 상단 [클래스 화면 연동]을 통해 방에 접속해주세요!');
+                return;
+            }
+
+            alert('선생님께 현재 캔버스 풀이 화면을 성공적으로 제출했습니다! 🎉');
+        };
+    </script>
+</body>
+</html>
