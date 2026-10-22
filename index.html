@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수업 자료 아카이브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script>
+/* =========================================================
+   ✏️ 여기만 고치면 됩니다
+   ---------------------------------------------------------
+   1) SITE : 페이지 제목과 소개 문구
+   2) RESOURCES : 자료 목록. 자료가 생기면 { ... }, 한 덩어리를 복사해서
+      아래에 붙여 넣고 내용만 바꾸세요. (덩어리 끝의 쉼표 , 를 잊지 마세요)
+
+   각 항목 설명
+   - title    : 화면에 보일 자료 이름 (한글 OK)
+   - desc     : 한두 줄 설명
+   - category : "게임", "수업 도구", "학습 자료" 중 하나 (새 이름을 쓰면 탭이 자동으로 생김)
+   - link     : 자료 폴더 주소. 예) "games/ratio-game/"  (PDF면 "docs/파일이름.pdf")
+   - icon     : 이모지 하나
+   - grade    : 대상 학년 (없으면 "" 로 비워 두기)
+   - date     : 올린 날짜 "2026-10-21" 형식 (최신순 정렬에 쓰임)
+   ========================================================= */
+
+const SITE = {
+  title: "수업 자료 아카이브",
+  intro: "직접 만든 수업용 게임과 도구, 학습 자료를 모아 둔 곳입니다. 카드를 누르면 바로 열려요."
+};
+
+const RESOURCES = [
+  {
+    title: "수학 비율 게임",
+    desc: "카드를 골라 비율을 맞히는 게임. 수업 방 코드로 선생님·학생 연동도 할 수 있어요.",
+    category: "게임",
+    link: "games/ratio-game/",
+    icon: "🧮",
+    grade: "6학년",
+    date: "2026-10-21"
+  },
+
+  /* ▼ 새 자료를 추가할 때 이 틀을 복사해서 위쪽에 붙여 넣으세요 ▼
+  {
+    title: "자료 이름",
+    desc: "자료 설명",
+    category: "수업 도구",
+    link: "tools/폴더이름/",
+    icon: "⏱️",
+    grade: "",
+    date: "2026-11-01"
+  },
+  */
+];
+</script>
+
+<style>
+  :root {
+    --paper: #fbfcff;
+    --grid: #dfe7f4;
+    --ink: #1f2a44;
+    --ink-soft: #5b6680;
+    --card: #ffffff;
+    --line: #c9d4e8;
+    --pen: #2f62d6;
+    --marker: #ffe066;
+    --cat-게임: #ff8a5c;
+    --cat-tool: #3fb68b;
+    --cat-doc: #7b6cf6;
+    --cat-etc: #8a94a8;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #151b2b;
+      --grid: #222b40;
+      --ink: #e8edf7;
+      --ink-soft: #a3aec4;
+      --card: #1c2437;
+      --line: #33405c;
+      --pen: #7aa2ff;
+      --marker: #8a7420;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 56px 20px 80px; }
+
+  /* 제목: 형광펜 밑줄 */
+  h1 {
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    line-height: 1.15;
+    margin: 0 0 14px;
+    display: inline;
+    background: linear-gradient(transparent 58%, var(--marker) 58%, var(--marker) 92%, transparent 92%);
+    padding: 0 4px;
+  }
+  .intro { color: var(--ink-soft); max-width: 36em; margin: 18px 0 36px; font-size: 1.02rem; }
+
+  /* 검색 + 탭 */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 12px 20px;
+    align-items: flex-end; justify-content: space-between;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 28px;
+  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tab {
+    font-family: "Jua", sans-serif; font-size: 1.05rem;
+    border: 2px solid var(--ink); border-bottom: none;
+    background: var(--card); color: var(--ink-soft);
+    padding: 8px 16px 6px; border-radius: 10px 10px 0 0;
+    cursor: pointer; position: relative; top: 2px;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); background: var(--paper); border-bottom: 2px solid var(--paper); }
+  .tab .n { font-family: "Noto Sans KR", sans-serif; font-size: .78rem; color: var(--ink-soft); margin-left: 4px; }
+
+  .search { padding-bottom: 10px; flex: 1 1 220px; max-width: 300px; }
+  .search input {
+    width: 100%; font: inherit; font-size: .95rem;
+    padding: 9px 14px; border-radius: 999px;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  .search input:focus { outline: none; border-color: var(--pen); }
+
+  /* 자료 카드: 인덱스카드 느낌 */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 22px; }
+  .card {
+    display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: 5px 5px 0 var(--cat, var(--cat-etc));
+    padding: 20px 20px 16px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--cat, var(--cat-etc)); }
+  .card:focus-visible { outline: 3px solid var(--pen); outline-offset: 3px; }
+  .card .top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .card .icon {
+    font-size: 1.7rem; width: 48px; height: 48px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 50%; background: var(--paper); border: 2px dashed var(--line);
+  }
+  .card h2 { font-family: "Jua", sans-serif; font-weight: 400; font-size: 1.35rem; margin: 0; line-height: 1.25; }
+  .card p { margin: 0 0 16px; color: var(--ink-soft); font-size: .93rem; flex: 1; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: .78rem; }
+  .chip { padding: 2px 10px; border-radius: 999px; border: 1.5px solid var(--line); color: var(--ink-soft); }
+  .chip.cat { border-color: var(--cat, var(--cat-etc)); color: var(--ink); font-weight: 700; }
+
+  .empty { text-align: center; color: var(--ink-soft); padding: 48px 0; font-size: 1rem; }
+  footer { margin-top: 56px; color: var(--ink-soft); font-size: .8rem; }
+
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+  @media (max-width: 560px) {
+    .wrap { padding-top: 36px; }
+    .search { max-width: none; order: -1; flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1 id="site-title"></h1>
+    <p class="intro" id="site-intro"></p>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <label class="search">
+      <input type="search" id="q" placeholder="자료 이름으로 찾기" aria-label="자료 검색">
+    </label>
+  </div>
+
+  <section class="grid" id="grid" aria-live="polite"></section>
+
+  <footer id="foot"></footer>
+</main>
+
+<script>
+  const CAT_COLORS = { "게임": "var(--cat-게임)", "수업 도구": "var(--cat-tool)", "학습 자료": "var(--cat-doc)" };
+  const colorOf = c => CAT_COLORS[c] || "var(--cat-etc)";
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+
+  document.title = SITE.title;
+  document.getElementById("site-title").textContent = SITE.title;
+  document.getElementById("site-intro").textContent = SITE.intro;
+
+  const items = [...RESOURCES].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const cats = ["전체", ...new Set(items.map(r => r.category || "기타"))];
+  let current = "전체";
+
+  const tabsEl = document.getElementById("tabs");
+  const gridEl = document.getElementById("grid");
+  const qEl = document.getElementById("q");
+
+  function renderTabs() {
+    tabsEl.innerHTML = cats.map(c => {
+      const n = c === "전체" ? items.length : items.filter(r => (r.category || "기타") === c).length;
+      return `<button class="tab" role="tab" aria-selected="${c === current}" data-cat="${esc(c)}">${esc(c)}<span class="n">${n}</span></button>`;
+    }).join("");
+  }
+
+  function renderCards() {
+    const q = qEl.value.trim().toLowerCase();
+    const list = items.filter(r =>
+      (current === "전체" || (r.category || "기타") === current) &&
+      (!q || (r.title + " " + (r.desc || "")).toLowerCase().includes(q))
+    );
+    if (!list.length) {
+      gridEl.innerHTML = `<p class="empty">${q ? `‘${esc(qEl.value)}’에 맞는 자료가 없어요. 다른 낱말로 찾아보세요.` : "아직 이 분류에 올린 자료가 없어요."}</p>`;
+      return;
+    }
+    gridEl.innerHTML = list.map(r => `
+      <a class="card" href="${esc(r.link)}" style="--cat:${colorOf(r.category)}">
+        <div class="top">
+          <span class="icon" aria-hidden="true">${esc(r.icon || "📄")}</span>
+          <h2>${esc(r.title)}</h2>
+        </div>
+        <p>${esc(r.desc)}</p>
+        <div class="meta">
+          <span class="chip cat">${esc(r.category || "기타")}</span>
+          ${r.grade ? `<span class="chip">${esc(r.grade)}</span>` : ""}
+          ${r.date ? `<span class="chip">${esc(r.date)}</span>` : ""}
+        </div>
+      </a>`).join("");
+  }
+
+  tabsEl.addEventListener("click", e => {
+    const b = e.target.closest(".tab");
+    if (!b) return;
+    current = b.dataset.cat;
+    renderTabs(); renderCards();
+  });
+  qEl.addEventListener("input", renderCards);
+
+  document.getElementById("foot").textContent = `자료 ${items.length}개`;
+  renderTabs(); renderCards();
+</script>
+</body>
+</html>
