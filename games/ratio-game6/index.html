@@ -1,1 +1,371 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비례식을 활용하여 지구 둘레 구하기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DCE8F2; --panel:#FFFFFF; --ink:#16263D; --muted:#5C6B80;
+  --lapis:#23477A; --gold:#E9A31B; --faience:#2A9D8F; --danger:#C8553D;
+  --line:#C3D2E2; --chip:#EEF3F9; --sky:#BFD6EA;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1B2D; --panel:#18273D; --ink:#E8EEF6; --muted:#9AAAC0;
+    --lapis:#8DB4E8; --gold:#F2B544; --faience:#4CC2B3; --danger:#E8806A;
+    --line:#2B3E5A; --chip:#203350; --sky:#13233A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1B2D; --panel:#18273D; --ink:#E8EEF6; --muted:#9AAAC0;
+  --lapis:#8DB4E8; --gold:#F2B544; --faience:#4CC2B3; --danger:#E8806A;
+  --line:#2B3E5A; --chip:#203350; --sky:#13233A;
+  color-scheme: dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:4px 0 12px}
+h1{font-family:"Jua","Gothic A1",sans-serif;font-weight:400;font-size:1.75rem;line-height:1.15;margin:0;color:var(--lapis)}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.score{font-family:"Jua",sans-serif;font-size:1.25rem;color:var(--gold);white-space:nowrap;text-align:right;line-height:1.2}
+.score small{display:block;font-family:"Gothic A1",sans-serif;font-size:.75rem;color:var(--muted)}
+.progress{display:flex;gap:6px;margin-bottom:12px}
+.progress i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.progress i.done{background:var(--faience)}
+.progress i.now{background:var(--gold)}
+.scene{background:var(--sky);border-radius:20px;overflow:hidden;position:relative}
+.scene svg{display:block;width:100%;height:auto}
+.scene .note{position:absolute;left:12px;bottom:8px;font-size:.7rem;color:var(--muted)}
+.place{font-family:"Jua",sans-serif;font-size:1.3rem;margin:16px 0 2px}
+.panel{background:var(--panel);border-radius:20px;padding:18px;margin-top:12px;border:1px solid var(--line)}
+.story{margin:0 0 12px}
+.clues{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.clue{background:var(--chip);border-radius:10px;padding:6px 10px;font-size:.9rem}
+.clue b{font-family:"Jua",sans-serif;font-weight:400;font-size:1.1rem;color:var(--lapis);margin-left:4px}
+h2{font-size:1.05rem;font-weight:800;margin:0 0 10px}
+.eq{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;
+  font-family:"Jua",sans-serif;font-size:1.35rem;margin:6px 0 14px}
+.term{background:var(--chip);border-radius:10px;padding:6px 10px}
+.slot{min-width:86px;height:48px;border-radius:12px;border:2px dashed var(--line);background:transparent;
+  font:inherit;color:var(--ink);cursor:pointer;padding:0 8px}
+.slot.full{border-style:solid;border-color:var(--lapis);background:var(--chip)}
+.slot.bad{border-color:var(--danger);color:var(--danger)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px}
+.chip{font-family:"Jua",sans-serif;font-size:1.15rem;border:none;border-radius:12px;padding:8px 14px;
+  background:var(--gold);color:#1B1300;cursor:pointer;min-height:44px}
+.chip:disabled{opacity:.25;cursor:default}
+.msg{min-height:1.6em;font-size:.92rem;margin:8px 0;color:var(--muted)}
+.msg.ok{color:var(--faience);font-weight:600}
+.msg.no{color:var(--danger);font-weight:600}
+.calc{font-family:"Jua",sans-serif;font-size:1.2rem;background:var(--chip);border-radius:12px;padding:10px 12px;margin:0 0 10px;text-align:center}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:"Jua",sans-serif;font-size:1.2rem;margin:10px 0}
+.row input{flex:1;min-width:120px;font:inherit;font-size:1.25rem;padding:8px 12px;border-radius:12px;
+  border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.row input:focus{outline:none;border-color:var(--lapis)}
+.row .done{color:var(--faience)}
+.primary{width:100%;font-family:"Jua",sans-serif;font-size:1.2rem;border:none;border-radius:14px;
+  padding:12px;background:var(--lapis);color:var(--panel);cursor:pointer;margin-top:6px;min-height:50px}
+.secondary{width:100%;font-family:"Jua",sans-serif;font-size:1.1rem;border:2px solid var(--lapis);border-radius:14px;
+  padding:10px;background:transparent;color:var(--lapis);cursor:pointer;margin-top:8px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.big{font-family:"Jua",sans-serif;font-size:2.6rem;line-height:1.1;color:var(--lapis);text-align:center;margin:6px 0 2px}
+.big small{font-size:1.1rem;color:var(--muted)}
+.stars{text-align:center;font-size:1.8rem;letter-spacing:4px;margin:4px 0 10px}
+.bars{margin:12px 0}
+.bar{margin:8px 0;font-size:.85rem}
+.bar div{height:14px;border-radius:7px;margin-top:3px;width:0;transition:width .9s ease}
+.bar .me{background:var(--gold)} .bar .real{background:var(--faience)}
+.summary li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.summary{list-style:none;padding:0;margin:0 0 12px}
+@media (prefers-reduced-motion: reduce){.bar div{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>비례식을 활용하여 지구 둘레 구하기</h1>
+      <p class="sub">에라토스테네스처럼 비례식으로 행성의 둘레를 구해요</p>
+    </div>
+    <div class="score"><span id="score">0</span>점<small id="roundLabel">1 / 5 라운드</small></div>
+  </header>
+  <div class="progress" id="progress"></div>
+  <div class="scene" id="scene"></div>
+  <div class="place" id="place"></div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+const ROUNDS = [
+  {name:'이집트, 기원전 240년경', A:'알렉산드리아', B:'시에네', d:900, a:7.2, real:40075, planet:'지구', color:'#3E7CC9',
+   story:'하짓날 정오, 시에네의 우물 바닥까지 햇빛이 곧장 비쳤어요. 같은 시각 900 km 떨어진 알렉산드리아에서는 막대의 그림자가 7.2° 기울어 있었어요.'},
+  {name:'거리를 다시 재면', A:'알렉산드리아', B:'시에네', d:800, a:7.2, real:40075, planet:'지구', color:'#3E7CC9',
+   story:'오늘날 재어 보면 두 도시 사이는 약 800 km라고 해요. 각도는 그대로 두고 거리만 고쳐서 다시 계산해 봐요.'},
+  {name:'우리나라에서', A:'서울', B:'제주', d:450, a:4, real:40075, planet:'지구', color:'#3E7CC9',
+   story:'같은 날 정오에 서울과 제주에 막대를 세웠어요. 두 곳은 남북으로 약 450 km 떨어져 있고, 그림자 각도는 4°만큼 차이가 났어요.'},
+  {name:'화성 탐사', A:'탐사 기지 1', B:'탐사 기지 2', d:1060, a:18, real:21344, planet:'화성', color:'#C1583B',
+   story:'화성의 두 탐사 기지가 같은 시각에 막대 그림자를 재었어요. 두 기지 사이는 1060 km, 각도 차이는 18°였어요.'},
+  {name:'달 탐사', A:'착륙선 A', B:'착륙선 B', d:546, a:18, real:10921, planet:'달', color:'#9AA0A8',
+   story:'달에 내린 두 착륙선이 546 km 떨어져 있어요. 햇빛 각도를 비교했더니 18°만큼 차이가 났어요.'}
+];
+
+const RANDOM_PLANETS = [
+  {planet:'푸른 행성 케플러', color:'#2F8FA8'}, {planet:'붉은 사막 행성', color:'#B5562E'},
+  {planet:'얼음 행성 노바', color:'#7FB3C9'}, {planet:'보라 구름 행성', color:'#7B5EA7'},
+  {planet:'초록 숲 행성', color:'#4E9A5B'}
+];
+const NICE_ANGLES = [2.4,3,3.6,4,4.5,5,6,7.2,8,9,10,12,15,18,20,24,30,36];
+
+let S = {list:ROUNDS, i:0, score:0, results:[], mode:'main'};
+let R, step, mistakes, slots, chips, product;
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('ko-KR',{maximumFractionDigits:2});
+const circ = r => Math.round(r.d*3600/Math.round(r.a*10));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const parseNum = s => parseFloat(String(s).replace(/[,\s]/g,''));
+
+function makeRandomRounds(){
+  const out=[];
+  for(let k=0;k<5;k++){
+    const p = RANDOM_PLANETS[Math.floor(Math.random()*RANDOM_PLANETS.length)];
+    let a,d;
+    do{
+      a = NICE_ANGLES[Math.floor(Math.random()*NICE_ANGLES.length)];
+      d = (Math.floor(Math.random()*290)+10)*10;
+    } while((d*3600) % Math.round(a*10) !== 0);
+    out.push({name:p.planet, A:'기지 A', B:'기지 B', d, a, real:null, planet:p.planet, color:p.color,
+      story:`탐사대가 ${p.planet}의 두 기지에서 같은 시각에 막대 그림자를 재었어요. 두 기지 사이는 ${fmt(d)} km, 그림자 각도 차이는 ${a}°였어요.`});
+  }
+  return out;
+}
+
+/* ---------- scene ---------- */
+function drawScene(r){
+  const W=360,H=230, cx=34, cy=180, Rr=270;
+  const disp = Math.min(34, Math.max(10, r.a*2.2)) * Math.PI/180;
+  const B = {x:cx+Rr, y:cy};
+  const A = {x:cx+Rr*Math.cos(disp), y:cy-Rr*Math.sin(disp)};
+  const u = {x:Math.cos(disp), y:-Math.sin(disp)};
+  const T = {x:A.x+u.x*30, y:A.y+u.y*30};
+  const ar=46, tr=22;
+  const c1={x:cx+ar, y:cy}, c2={x:cx+ar*Math.cos(disp), y:cy-ar*Math.sin(disp)};
+  const t1={x:A.x+tr, y:A.y}, t2={x:A.x+tr*Math.cos(disp), y:A.y-tr*Math.sin(disp)};
+  const mid = disp/2;
+  const tl = {x:A.x+(tr+18)*Math.cos(mid), y:A.y-(tr+18)*Math.sin(mid)+5};
+  const lbl={x:cx+(ar+16)*Math.cos(mid), y:cy-(ar+16)*Math.sin(mid)+5};
+  const arcMid = {x:cx+(Rr-20)*Math.cos(mid), y:cy-(Rr-20)*Math.sin(mid)};
+  $('scene').innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${r.planet} 단면 그림: 두 지점 사이 거리 ${r.d} km, 중심각 ${r.a}도">
+    <defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="var(--gold)"/></marker></defs>
+    <circle cx="${W-26}" cy="30" r="16" fill="var(--gold)"/>
+    <circle cx="${cx}" cy="${cy}" r="${Rr}" fill="${r.color}"/>
+    <path d="M${B.x} ${B.y} A${Rr} ${Rr} 0 0 0 ${A.x} ${A.y}" fill="none" stroke="#16263D" stroke-width="9" stroke-linecap="round"/>
+    <path d="M${B.x} ${B.y} A${Rr} ${Rr} 0 0 0 ${A.x} ${A.y}" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${B.x}" y2="${B.y}" stroke="#fff" stroke-width="1.6"/>
+    <line x1="${cx}" y1="${cy}" x2="${T.x}" y2="${T.y}" stroke="#fff" stroke-width="1.6"/>
+    <path d="M${c1.x} ${c1.y} A${ar} ${ar} 0 0 0 ${c2.x} ${c2.y}" fill="none" stroke="var(--gold)" stroke-width="3"/>
+    <text x="${lbl.x}" y="${lbl.y}" font-family="Jua,sans-serif" font-size="16" fill="#fff">${r.a}°</text>
+    <circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff"/>
+    <text x="${cx+4}" y="${cy+22}" font-size="11" fill="#fff" font-family="Gothic A1,sans-serif">중심</text>
+    <line x1="${W-4}" y1="${A.y}" x2="${A.x+2}" y2="${A.y}" stroke="var(--gold)" stroke-width="2" stroke-dasharray="5 4" marker-start="arw"/>
+    <line x1="${W-4}" y1="${B.y}" x2="${B.x+2}" y2="${B.y}" stroke="var(--gold)" stroke-width="2" stroke-dasharray="5 4" marker-start="arw"/>
+    <line x1="${A.x}" y1="${A.y}" x2="${T.x}" y2="${T.y}" stroke="#5A3A1A" stroke-width="5" stroke-linecap="round"/>
+    <path d="M${A.x} ${A.y} L${t1.x} ${t1.y} A${tr} ${tr} 0 0 0 ${t2.x} ${t2.y} Z" fill="var(--gold)" fill-opacity=".45" stroke="var(--gold)" stroke-width="2"/>
+    <text x="${tl.x}" y="${tl.y}" text-anchor="middle" font-family="Jua,sans-serif" font-size="15" fill="#fff" stroke="#16263D" stroke-width="3" paint-order="stroke">${r.a}°</text>
+    <rect x="${B.x-3}" y="${B.y-7}" width="10" height="14" rx="2" fill="#5A3A1A"/>
+    <text x="${A.x-6}" y="${A.y+20}" text-anchor="end" font-size="12" font-weight="800" fill="#fff" font-family="Gothic A1,sans-serif">${r.A}</text>
+    <text x="${B.x-8}" y="${B.y+20}" text-anchor="end" font-size="12" font-weight="800" fill="#fff" font-family="Gothic A1,sans-serif">${r.B}</text>
+    <text x="${arcMid.x-4}" y="${arcMid.y}" text-anchor="end" font-family="Jua,sans-serif" font-size="15" fill="#fff" stroke="#16263D" stroke-width="3" paint-order="stroke">${fmt(r.d)} km</text>
+    <text x="${arcMid.x-4}" y="${arcMid.y+15}" text-anchor="end" font-family="Gothic A1,sans-serif" font-size="10" font-weight="800" fill="#fff" stroke="#16263D" stroke-width="2.5" paint-order="stroke">흰 곡선 = 둘레를 따라 잰 거리</text>
+    <text x="${W-6}" y="${B.y-8}" text-anchor="end" font-size="11" fill="var(--ink)" font-family="Gothic A1,sans-serif">햇빛</text>
+  </svg>
+  <span class="note">각도는 보기 쉽게 크게 그렸어요</span>`;
+}
+
+/* ---------- flow ---------- */
+function header(){
+  $('score').textContent = fmt(S.score);
+  $('roundLabel').textContent = `${S.i+1} / ${S.list.length} 라운드${S.mode==='challenge'?' · 도전':''}`;
+  $('progress').innerHTML = S.list.map((_,k)=>`<i class="${k<S.i?'done':k===S.i?'now':''}"></i>`).join('');
+}
+
+function startRound(){
+  R = S.list[S.i]; step=1; mistakes=0; slots=[null,null,null];
+  const decoyA = R.a===18 ? 9 : 180;
+  chips = shuffle([
+    {id:'d', label:`${fmt(R.d)} km`}, {id:'360', label:'360°'}, {id:'a', label:`${R.a}°`},
+    {id:'x1', label:`${decoyA}°`}, {id:'x2', label:`${fmt(R.d*2)} km`}
+  ]);
+  header(); drawScene(R);
+  $('place').textContent = `${R.planet}  |  ${R.name}`;
+  renderStep1();
+}
+
+function renderStep1(){
+  $('panel').innerHTML = `
+    <p class="story">${R.story}</p>
+    <div class="clues">
+      <span class="clue">두 곳 사이 둘레 거리(흰 곡선)<b>${fmt(R.d)} km</b></span>
+      <span class="clue">그림자 각도<b>${R.a}°</b></span>
+      <span class="clue">한 바퀴<b>360°</b></span>
+    </div>
+    <h2>1. 카드를 눌러 비례식을 완성하세요</h2>
+    <div class="eq">
+      <span class="term">${R.planet} 둘레</span> :
+      <button class="slot" data-k="0" aria-label="빈칸 1"></button> =
+      <button class="slot" data-k="1" aria-label="빈칸 2"></button> :
+      <button class="slot" data-k="2" aria-label="빈칸 3"></button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <p class="msg" id="msg">채운 칸을 다시 누르면 카드가 돌아가요.</p>
+    <button class="primary" id="check">확인하기</button>`;
+  drawChips();
+  document.querySelectorAll('.slot').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k; if(slots[k]){slots[k]=null; drawChips();}
+  });
+  $('check').onclick = checkStep1;
+}
+
+function drawChips(){
+  $('chips').innerHTML = chips.map(c=>`<button class="chip" data-id="${c.id}" ${slots.some(s=>s&&s.id===c.id)?'disabled':''}>${c.label}</button>`).join('');
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
+    const k=slots.indexOf(null); if(k<0) return;
+    slots[k]=chips.find(c=>c.id===b.dataset.id); drawChips();
+  });
+  document.querySelectorAll('.slot').forEach(b=>{
+    const s=slots[+b.dataset.k];
+    b.textContent = s? s.label : ''; b.classList.toggle('full',!!s); b.classList.remove('bad');
+  });
+}
+
+function checkStep1(){
+  const msg=$('msg');
+  if(slots.includes(null)){ msg.className='msg no'; msg.textContent='빈칸 세 개를 모두 채워 주세요.'; return; }
+  const want=['d','360','a'];
+  const ok = slots.every((s,k)=>s.id===want[k]);
+  if(ok){
+    S.score += mistakes===0?30:10;
+    header(); step=2; renderStep2();
+  } else {
+    mistakes++;
+    document.querySelectorAll('.slot').forEach(b=>{ if(slots[+b.dataset.k].id!==want[+b.dataset.k]) b.classList.add('bad'); });
+    msg.className='msg no';
+    msg.textContent='둘레(한 바퀴 길이)와 짝이 되는 건 둘레의 일부인 두 곳 사이 거리, 360°(한 바퀴 각도)와 짝이 되는 건 그림자 각도예요.';
+  }
+}
+
+function eqLine(){ return `${R.planet} 둘레 : ${fmt(R.d)} = 360 : ${R.a}`; }
+
+function renderStep2(){
+  product = R.d*360;
+  $('panel').innerHTML = `
+    <div class="calc">${eqLine()}</div>
+    <h2>2. 외항의 곱과 내항의 곱은 같아요</h2>
+    <div class="calc">${R.planet} 둘레 × ${R.a} = ${fmt(R.d)} × 360</div>
+    <div class="row"><span>${fmt(R.d)} × 360 =</span><input id="ans" inputmode="decimal" autocomplete="off" aria-label="곱의 값"></div>
+    <p class="msg" id="msg"></p>
+    <button class="primary" id="check">확인하기</button>`;
+  bindAnswer(product, ()=>{ S.score += mistakes<=1?30:10; header(); renderStep3(); },
+    '360을 36 × 10으로 나누어 곱해 보세요. 예: 900 × 36을 먼저 구한 뒤 0을 하나 붙여요.');
+}
+
+function renderStep3(){
+  const C = circ(R);
+  const tenHint = Number.isInteger(R.a) ? `${fmt(product)} ÷ ${R.a}을(를) 차근차근 나누어 보세요.`
+    : `나누는 수와 나뉘는 수에 똑같이 10을 곱하면 ${fmt(product*10)} ÷ ${Math.round(R.a*10)}이 되어 계산이 쉬워져요.`;
+  $('panel').innerHTML = `
+    <div class="calc">${eqLine()}</div>
+    <div class="calc">${R.planet} 둘레 × ${R.a} = ${fmt(product)}</div>
+    <h2>3. 나눗셈으로 둘레를 구하세요</h2>
+    <div class="row"><span>${R.planet} 둘레 = ${fmt(product)} ÷ ${R.a} =</span><input id="ans" inputmode="decimal" autocomplete="off" aria-label="둘레"><span>km</span></div>
+    <p class="msg" id="msg"></p>
+    <button class="primary" id="check">확인하기</button>`;
+  bindAnswer(C, ()=>{ S.score += mistakes<=2?40:15; header(); renderResult(C); }, tenHint);
+}
+
+function bindAnswer(target, onOk, hint){
+  const inp=$('ans'), msg=$('msg');
+  inp.focus({preventScroll:true});
+  const go=()=>{
+    const v=parseNum(inp.value);
+    if(isNaN(v)){ msg.className='msg no'; msg.textContent='숫자를 입력해 주세요.'; return; }
+    if(Math.abs(v-target)<0.01){ onOk(); }
+    else { mistakes++; msg.className='msg no'; msg.textContent=`다시 계산해 보세요. 힌트: ${hint}`; inp.select(); }
+  };
+  $('check').onclick=go;
+  inp.onkeydown=e=>{ if(e.key==='Enter') go(); };
+}
+
+function renderResult(C){
+  const stars = mistakes===0?3:mistakes<=2?2:1;
+  S.results.push({name:`${R.planet} | ${R.name}`, C, stars});
+  const last = S.i===S.list.length-1;
+  let compare='';
+  if(R.real){
+    const err = Math.abs(C-R.real)/R.real*100;
+    const max = Math.max(C,R.real);
+    compare = `
+      <div class="bars">
+        <div class="bar">내가 구한 둘레 ${fmt(C)} km<div class="me" data-w="${C/max*100}"></div></div>
+        <div class="bar">실제 ${R.planet} 둘레 약 ${fmt(R.real)} km<div class="real" data-w="${R.real/max*100}"></div></div>
+      </div>
+      <p class="msg">${err<1?'실제 값과 거의 같아요! 측정이 정확했어요.':`실제 값과 약 ${err.toFixed(1)}% 차이가 나요. ${err>5?'거리나 각도를 잰 값이 조금 달랐기 때문이에요.':'아주 가까운 값이에요.'}`}</p>`;
+  } else {
+    compare = `<p class="msg ok">새로운 행성의 둘레를 처음으로 알아냈어요!</p>`;
+  }
+  $('panel').innerHTML = `
+    <p class="msg ok" style="text-align:center;margin-top:0">정답이에요!</p>
+    <div class="big"><span id="count">0</span> <small>km</small></div>
+    <div class="stars" aria-label="별 ${stars}개">${'★'.repeat(stars)}<span style="opacity:.25">${'★'.repeat(3-stars)}</span></div>
+    <div class="calc">${eqLine()}</div>
+    ${compare}
+    <button class="primary" id="next">${last?'결과 보기':'다음 라운드'}</button>`;
+  countUp($('count'), C);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.bar div').forEach(d=>d.style.width=d.dataset.w+'%');
+  }));
+  $('next').onclick=()=>{ if(last) renderSummary(); else { S.i++; startRound(); window.scrollTo({top:0,behavior:'smooth'}); } };
+}
+
+function countUp(el, n){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){ el.textContent=fmt(n); return; }
+  const t0=performance.now(), dur=900;
+  const tick=t=>{ const p=Math.min(1,(t-t0)/dur); el.textContent=fmt(Math.round(n*(1-Math.pow(1-p,3)))); if(p<1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+
+function renderSummary(){
+  const total = S.results.reduce((s,r)=>s+r.stars,0);
+  $('progress').innerHTML = S.list.map(()=>'<i class="done"></i>').join('');
+  $('place').textContent = S.mode==='challenge' ? '도전 모드 완료' : '모든 라운드 완료';
+  $('panel').innerHTML = `
+    <div class="big">${fmt(S.score)} <small>점</small></div>
+    <div class="stars">별 ${total} / ${S.list.length*3}</div>
+    <ul class="summary">${S.results.map(r=>`<li><span>${r.name}</span><span>${fmt(r.C)} km ${'★'.repeat(r.stars)}</span></li>`).join('')}</ul>
+    <p class="story">에라토스테네스는 막대 하나와 비례식만으로 지구의 둘레를 알아냈어요. 한 바퀴(360°)와 그림자 각도의 비가, 둘레와 두 곳 사이 거리의 비와 같다는 생각이 핵심이었어요.</p>
+    <button class="primary" id="challenge">도전 모드 (새 행성 5개)</button>
+    <button class="secondary" id="restart">처음부터 다시</button>`;
+  $('challenge').onclick=()=>{ S={list:makeRandomRounds(), i:0, score:S.score, results:[], mode:'challenge'}; startRound(); window.scrollTo({top:0}); };
+  $('restart').onclick=()=>{ S={list:ROUNDS, i:0, score:0, results:[], mode:'main'}; startRound(); window.scrollTo({top:0}); };
+}
+
+startRound();
+</script>
+</body>
+</html>
