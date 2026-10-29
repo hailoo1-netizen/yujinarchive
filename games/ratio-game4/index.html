@@ -1,1 +1,530 @@
 
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A4 용지의 비를 알아보자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEF3; --grid:#DAE2EB; --soft:#F1F4F8; --ink:#1B2430; --muted:#5B6878;
+  --panel:#FFFFFF; --line:#C9D3DE; --paper:#FFFFFF; --paper-back:#E3E8EE; --edge:#AFBBC8;
+  --w:#2753C9; --h:#17855A; --ok:#17855A; --bad:#C2382F; --star:#D8950F;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121820; --grid:#1B232D; --soft:#1A222C; --ink:#E7EDF4; --muted:#9AA8B8;
+    --panel:#19212B; --line:#2F3B49; --paper:#E4E9EF; --paper-back:#B9C3CF; --edge:#8592A1;
+    --w:#86A6FF; --h:#55C995; --ok:#55C995; --bad:#FF7F75; --star:#F2C14E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121820; --grid:#1B232D; --soft:#1A222C; --ink:#E7EDF4; --muted:#9AA8B8;
+  --panel:#19212B; --line:#2F3B49; --paper:#E4E9EF; --paper-back:#B9C3CF; --edge:#8592A1;
+  --w:#86A6FF; --h:#55C995; --ok:#55C995; --bad:#FF7F75; --star:#F2C14E;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; color:var(--ink); background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  font-family:'Gowun Dodum',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  font-size:16px; line-height:1.65; min-height:100%;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:22px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:18px}
+h1{font-family:'Jua','Gowun Dodum',system-ui,sans-serif;font-weight:400;font-size:clamp(30px,5.4vw,46px);line-height:1.08;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:6px 0 0;max-width:34em}
+.seg{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.seg .box{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;padding:5px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.track{display:flex;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.track li{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted)}
+.track li.cur{border-color:var(--ink);color:var(--ink)}
+.track li.done{color:var(--ink)}
+.track .k{font-family:'Jua',sans-serif;font-size:22px;line-height:1}
+.track .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track .st{margin-left:auto;color:var(--star);font-size:13px;white-space:nowrap;letter-spacing:-1px}
+.play{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:780px){.play{grid-template-columns:1fr}.track .t{display:none}}
+.stage{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:12px;display:flex;justify-content:center;overflow:hidden}
+.board{position:relative}
+.ghost{position:absolute;border:1.5px dashed var(--line)}
+.ghost span{position:absolute;right:8px;top:4px;font-size:12px;color:var(--muted)}
+.paper,.flap{position:absolute;background:var(--paper);border:1px solid var(--edge)}
+.flap{z-index:3}
+.flap.fx{transform-origin:50% 100%;animation:flipX .9s ease-in-out forwards}
+.flap.fy{transform-origin:0 50%;animation:flipY .9s ease-in-out forwards}
+@keyframes flipX{0%{transform:perspective(900px) rotateX(0)}49.9%{background:var(--paper)}50%{background:var(--paper-back)}100%{transform:perspective(900px) rotateX(-180deg);background:var(--paper-back)}}
+@keyframes flipY{0%{transform:perspective(900px) rotateY(0)}49.9%{background:var(--paper)}50%{background:var(--paper-back)}100%{transform:perspective(900px) rotateY(-180deg);background:var(--paper-back)}}
+.dim{position:absolute;opacity:0;transition:opacity .45s ease}
+.dim.on{opacity:1}
+.dim-w{height:20px;border-left:2px solid var(--w);border-right:2px solid var(--w)}
+.dim-w::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid var(--w)}
+.dim-w .lab{position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);background:var(--panel);color:var(--w);padding:0 6px;font-family:'Jua',sans-serif;font-size:15px;line-height:1.2;white-space:nowrap}
+.dim-h{width:14px;border-top:2px solid var(--h);border-bottom:2px solid var(--h)}
+.dim-h::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:2px solid var(--h)}
+.dim-h .lab{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--h);font-family:'Jua',sans-serif;font-size:15px;line-height:1.25;white-space:nowrap}
+.fr{display:inline-flex;flex-direction:column;vertical-align:-0.35em;font-size:.6em;line-height:1.05;text-align:center;margin:0 1px 0 2px}
+.fr>span:first-child{border-bottom:1px solid currentColor;padding:0 1px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.panel{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:18px 18px 20px}
+.panel h2{font-family:'Jua',sans-serif;font-weight:400;font-size:27px;line-height:1.2;margin:0 0 6px}
+.panel p{margin:0 0 12px}
+.muted{color:var(--muted)}
+.meas{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;padding:12px 14px;border-radius:10px;background:var(--soft);margin:4px 0 6px;font-size:17px}
+.meas b{font-weight:400;font-family:'Jua',sans-serif;font-size:19px}
+.cw{color:var(--w)} .ch{color:var(--h)}
+.big{font-family:'Jua',sans-serif;font-size:23px;line-height:1.3}
+.step{border-top:1.5px dashed var(--line);padding-top:14px;margin-top:14px}
+.step h3{font-size:17px;margin:0 0 8px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eq{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0;font-family:'Jua',sans-serif;font-size:22px;line-height:1.2}
+.row{margin-top:8px}
+.eq input{width:100px;font-family:'Jua',sans-serif;font-size:22px;padding:5px 8px;border:2px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);text-align:center}
+.eq input.sm{width:64px}
+.eq input.iw{border-color:var(--w)} .eq input.ih{border-color:var(--h)}
+.colon{font-family:'Jua',sans-serif;font-size:26px;line-height:1}
+.btn{font-family:'Jua',sans-serif;font-size:17px;line-height:1.2;padding:9px 16px;border-radius:10px;border:2px solid var(--ink);background:var(--ink);color:var(--panel);cursor:pointer}
+.btn.line{background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.fb{min-height:1.5em;margin-top:8px;font-size:15px}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.hint{margin-top:8px;padding:8px 12px;border-left:3px solid var(--star);background:var(--soft);font-size:15px}
+.got{font-family:'Jua',sans-serif;font-size:22px;color:var(--ok)}
+.win{margin-top:16px;padding:14px;border-radius:12px;border:2px solid var(--ok);text-align:center}
+.win .stars{font-size:28px;color:var(--star);letter-spacing:2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.summary{background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:20px}
+.summary h2{font-family:'Jua',sans-serif;font-weight:400;font-size:30px;margin:0 0 4px}
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:16px}
+th,td{padding:9px 10px;border-bottom:1.5px solid var(--line);text-align:center}
+th{font-weight:700;color:var(--muted);font-size:14px}
+td.r{font-family:'Jua',sans-serif;font-size:19px}
+tr.base td{color:var(--muted)}
+.checks{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.checks label{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;font-family:'Jua',sans-serif;font-size:19px}
+.checks input{width:18px;height:18px}
+.reveal{margin-top:12px;padding:12px 14px;background:var(--soft);border-radius:10px}
+:focus-visible{outline:3px solid var(--w);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.flap{animation-duration:.01s!important}.dim{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>A4 용지의 비를 알아보자</h1>
+      <p class="sub">종이를 반씩 접으며 긴 변과 짧은 변을 재고, 소수나 분수로 된 비를 간단한 자연수의 비로 나타내요.</p>
+    </div>
+    <div class="seg" role="group" aria-label="길이 표시 방식">
+      길이 표시
+      <span class="box">
+        <button type="button" data-mode="dec" aria-pressed="true">소수</button>
+        <button type="button" data-mode="frac" aria-pressed="false">분수</button>
+      </span>
+    </div>
+  </header>
+  <ol class="track" id="track"></ol>
+  <main id="main"></main>
+</div>
+
+<script>
+const STAGES = [
+  {k:'가', n:1, fold:'h', how:'긴 변이 반이 되도록 위쪽을 아래로 접어요.'},
+  {k:'나', n:2, fold:'w', swap:true, how:'긴 변이 반이 되도록 오른쪽을 왼쪽으로 접어요.'},
+  {k:'다', n:3, fold:'h', how:'긴 변이 반이 되도록 위쪽을 아래로 접어요.'},
+  {k:'라', n:4, fold:'w', swap:true, how:'긴 변이 반이 되도록 오른쪽을 왼쪽으로 접어요.'}
+];
+const ORD = ['한','두','세','네'];
+// 길이는 0.25mm 단위 정수로 저장 (정확한 계산용)
+const A4 = {x:0, y:0, W:840, H:1188};
+const A4M = {W:1188, H:840}; // 긴 변 : 짧은 변
+(function(){
+  let r = {...A4}, pm = A4M;
+  STAGES.forEach(s => {
+    s.before = {...r}; s.mb = pm;
+    r = s.fold === 'h' ? {x:r.x, y:r.y + r.H/2, W:r.W, H:r.H/2} : {x:r.x, y:r.y, W:r.W/2, H:r.H};
+    s.after = {...r};                                          // 그림 위치·크기
+    s.meas = {W:Math.max(r.W, r.H), H:Math.min(r.W, r.H)};   // W: 긴 변, H: 짧은 변
+    pm = s.meas;
+  });
+})();
+
+const S = {mode:'dec', i:-1, phase:'intro', stars:[], st:null, found:false};
+function freshStage(){ return {s1:null, s2:null, h1:0, h2:0, wrong:0, done:false}; }
+
+const $ = q => document.querySelector(q);
+const gcd = (a,b) => { while(b){ [a,b] = [b, a % b]; } return a; };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const eul = m => (m === 2 || m === 4) ? '를' : '을';
+
+// 소수 모드: 0.01mm 단위 정수(반올림 없음) / 분수 모드: 0.25mm 단위 그대로
+function dv(q){ return S.mode === 'dec' ? q*25 : q; }
+const UNIT = () => S.mode === 'dec' ? 100 : 4;
+function fmt(q){
+  if (S.mode === 'dec') return String(dv(q)/100);
+  const n = Math.floor(q/4), r = q % 4;
+  if (!r) return String(n);
+  const [t,d] = r === 2 ? [1,2] : [r,4];
+  return `${n}<span class="fr" aria-hidden="true"><span>${t}</span><span>${d}</span></span><span class="sr">와 ${d}분의 ${t}</span>`;
+}
+function simplest(rect){ const w = dv(rect.W), h = dv(rect.H), g = gcd(w, h); return [w/g, h/g]; }
+function same(p, rect){ return p[0] * dv(rect.H) === p[1] * dv(rect.W); }
+function mult(rect){
+  if (S.mode === 'dec'){ const w = dv(rect.W), h = dv(rect.H); return (w % 10 || h % 10) ? 100 : (w % 100 || h % 100) ? 10 : 1; }
+  const odd = rect.W % 2 || rect.H % 2, half = rect.W % 4 || rect.H % 4;
+  return odd ? 4 : half ? 2 : 1;
+}
+
+/* ---------- 종이 판 ---------- */
+let geo = {s:1, ox:12, oy:34};
+function px(q){ return q/4*geo.s; }
+function measureGeo(stageEl){
+  const avail = stageEl.clientWidth - 24;
+  geo.s = Math.max(0.6, Math.min(1.25, (avail - 118)/210, 360/297));
+}
+function paperShadow(n){
+  const out = [];
+  for (let k = 1; k <= Math.min(n,3); k++){
+    const o = k*3;
+    out.push(`${o}px ${-o}px 0 0 var(--paper)`, `${o}px ${-o}px 0 1px var(--edge)`);
+  }
+  return out.join(',');
+}
+function drawBoard(rect, layers, dimsOn, swap){
+  const stageEl = $('#stage'); if (!stageEl) return;
+  measureGeo(stageEl);
+  const {s, ox, oy} = geo;
+  const board = $('#board');
+  board.style.width = (ox + 210*s + 108) + 'px';
+  board.style.height = (oy + 297*s + 14) + 'px';
+  board.innerHTML = `
+    <div class="ghost" style="left:${ox}px;top:${oy}px;width:${210*s}px;height:${297*s}px"><span>원래 A4</span></div>
+    <div class="paper" id="paper"></div>
+    <div class="dim dim-w" id="dimw"><span class="lab"></span></div>
+    <div class="dim dim-h" id="dimh"><span class="lab"></span></div>`;
+  placePaper(rect, layers);
+  placeDims(rect, dimsOn, swap);
+}
+function placePaper(rect, layers){
+  const p = $('#paper');
+  Object.assign(p.style, {left:geo.ox + px(rect.x) + 'px', top:geo.oy + px(rect.y) + 'px', width:px(rect.W) + 'px', height:px(rect.H) + 'px', boxShadow:paperShadow(Math.log2(layers))});
+}
+function placeDims(rect, on, swap){
+  const dw = $('#dimw'), dh = $('#dimh');
+  Object.assign(dw.style, {left:geo.ox + px(rect.x) + 'px', top:geo.oy + px(rect.y) - 28 + 'px', width:px(rect.W) + 'px'});
+  Object.assign(dh.style, {left:geo.ox + px(rect.x + rect.W) + 12 + 'px', top:geo.oy + px(rect.y) + 'px', height:px(rect.H) + 'px'});
+  const topLong = rect.W >= rect.H;
+  dw.querySelector('.lab').innerHTML = `${topLong ? '긴 변' : '짧은 변'} ${fmt(rect.W)} mm`;
+  dh.querySelector('.lab').innerHTML = `${topLong ? '짧은 변' : '긴 변'}<br>${fmt(rect.H)} mm`;
+  dw.style.setProperty('--w', topLong ? '' : 'var(--h)');
+  dh.style.setProperty('--h', topLong ? '' : 'var(--w)');
+  dw.classList.toggle('on', on); dh.classList.toggle('on', on);
+}
+function animateFold(st, done){
+  const b = st.before, a = st.after;
+  const layersBefore = 2 ** (st.n - 1);
+  drawBoard(b, layersBefore, false);
+  const flapRect = st.fold === 'h' ? {x:b.x, y:b.y, W:b.W, H:b.H/2} : {x:b.x + b.W/2, y:b.y, W:b.W/2, H:b.H};
+  placePaper(st.rot ? st.mid : a, layersBefore);
+  const f = document.createElement('div');
+  f.className = 'flap ' + (st.fold === 'h' ? 'fx' : 'fy');
+  Object.assign(f.style, {left:geo.ox + px(flapRect.x) + 'px', top:geo.oy + px(flapRect.y) + 'px', width:px(flapRect.W) + 'px', height:px(flapRect.H) + 'px'});
+  $('#board').appendChild(f);
+  let finished = false;
+  const end = () => {
+    if (finished) return; finished = true; f.remove();
+    placePaper(a, 2 ** st.n);
+    const fin = () => { placeDims(a, true, st.swap); done(); };
+    if (!st.rot || reduceMotion) return fin();
+    const p = $('#paper'), m = st.mid;
+    const dx = px((m.x + m.W/2) - (a.x + a.W/2)), dy = px((m.y + m.H/2) - (a.y + a.H/2));
+    p.style.transition = 'none';
+    p.style.transform = `translate(${dx}px, ${dy}px) rotate(90deg)`;
+    p.getBoundingClientRect();
+    p.style.transition = 'transform .6s ease-in-out';
+    p.style.transform = 'none';
+    setTimeout(() => { p.style.transition = ''; fin(); }, 680);
+  };
+  f.addEventListener('animationend', end);
+  setTimeout(end, reduceMotion ? 50 : 1200);
+}
+
+/* ---------- 진행 표시 ---------- */
+function renderTrack(){
+  $('#track').innerHTML = STAGES.map((st, idx) => {
+    const cls = idx < S.i || S.phase === 'summary' ? 'done' : idx === S.i ? 'cur' : '';
+    const stars = S.stars[idx] ? '★'.repeat(S.stars[idx]) + '☆'.repeat(3 - S.stars[idx]) : '';
+    return `<li class="${cls}"><span class="k">${st.k}</span><span class="t">${ORD[idx]} 번 접기</span><span class="st" aria-label="${stars ? '별 ' + S.stars[idx] + '개' : ''}">${stars}</span></li>`;
+  }).join('');
+}
+
+/* ---------- 화면 ---------- */
+function render(){
+  renderTrack();
+  if (S.phase === 'summary') return renderSummary();
+  const main = $('#main');
+  if (!$('#stage')){
+    main.innerHTML = `<div class="play"><section class="stage" id="stage" aria-label="종이 접기 판"><div class="board" id="board"></div></section><section class="panel" id="panel" aria-live="polite"></section></div>`;
+  }
+  redrawBoard();
+  renderPanel();
+}
+function redrawBoard(){
+  if (S.phase === 'intro') return drawBoard(A4, 1, true);
+  const st = STAGES[S.i];
+  if (S.phase === 'fold') return drawBoard(st.before, 2 ** (st.n - 1), false);
+  drawBoard(st.after, 2 ** st.n, true, st.swap);
+}
+
+function renderPanel(){
+  const P = $('#panel');
+  if (S.phase === 'intro'){
+    const [a,b] = simplest(A4M);
+    P.innerHTML = `
+      <h2>오늘의 종이</h2>
+      <p>A4 용지는 긴 변 <b class="cw">297 mm</b>, 짧은 변 <b class="ch">210 mm</b>예요.</p>
+      <div class="meas"><span>긴 변 : 짧은 변</span><span class="big">297 : 210 = ${a} : ${b}</span></div>
+      <p class="muted">이 종이를 반씩 네 번 접어 볼 거예요. 접을 때마다 긴 변과 짧은 변을 재고, 그 비를 가장 간단한 자연수의 비로 나타내요. 힌트를 쓰지 않고 맞히면 별 3개!</p>
+      <p class="muted">오른쪽 위에서 길이를 <b>소수</b>로 볼지 <b>분수</b>로 볼지 고를 수 있어요.</p>
+      <div class="actions"><button class="btn" id="go">(가) 접으러 가기</button></div>`;
+    $('#go').onclick = () => { S.i = 0; S.phase = 'fold'; S.st = freshStage(); render(); };
+    return;
+  }
+  const st = STAGES[S.i], T = S.st;
+  if (S.phase === 'fold'){
+    const b = st.mb;
+    P.innerHTML = `
+      <h2>(${st.k}) ${ORD[S.i]} 번 접기</h2>
+      <p>지금 종이는 긴 변 <b class="cw">${fmt(b.W)} mm</b>, 짧은 변 <b class="ch">${fmt(b.H)} mm</b>예요.</p>
+      <p>${st.how}</p>
+      <div class="actions"><button class="btn" id="fold">종이 접기</button></div>`;
+    $('#fold').onclick = e => {
+      e.target.disabled = true;
+      animateFold(st, () => { S.phase = 'work'; renderPanel(); const i = $('#m1a'); if (i) i.focus({preventScroll:true}); });
+    };
+    return;
+  }
+  // work
+  const a = st.meas, m = mult(a), [sa,sb] = simplest(a);
+  let html = `
+    <h2>(${st.k}) ${ORD[S.i]} 번 접은 종이</h2>
+    <p class="muted">겹쳐진 종이 ${2 ** st.n}장 · 자로 잰 길이</p>
+    <div class="meas">
+      <span class="cw">긴 변</span><b class="cw">${fmt(a.W)} mm</b>
+      <span class="ch">짧은 변</span><b class="ch">${fmt(a.H)} mm</b>
+      <span>긴 변 : 짧은 변</span><b><span class="cw">${fmt(a.W)}</span> : <span class="ch">${fmt(a.H)}</span></b>
+    </div>`;
+  // 1단계: 곱하기
+  const IN = (id, cls, label) => `<input id="${id}" class="${cls}" inputmode="numeric" autocomplete="off" aria-label="${label}">`;
+  html += `<div class="step"><h3>① ${S.mode === 'dec' ? '소수' : '분수'}를 자연수로 바꿔요</h3>`;
+  if (!T.s1){
+    html += `
+      <p class="muted" style="margin-bottom:4px">긴 변과 짧은 변에 같은 수를 곱하고, 계산한 결과를 적어요.</p>
+      <div class="eq"><span class="cw">${fmt(a.W)}</span><span>×</span>${IN('m1a','sm','긴 변에 곱하는 수')}<span class="colon">:</span><span class="ch">${fmt(a.H)}</span><span>×</span>${IN('m1b','sm','짧은 변에 곱하는 수')}</div>
+      <div class="eq"><span>=</span>${IN('a1','iw','긴 변 계산 결과')}<span class="colon">:</span>${IN('b1','ih','짧은 변 계산 결과')}</div>
+      <div class="row"><button class="btn" id="c1">확인</button><button class="btn line" id="h1"${T.h1 >= 2 ? ' disabled' : ''}>힌트</button></div>
+      <div class="fb" id="f1"></div>${hint1Html(a, m, T.h1)}`;
+  } else {
+    html += `<p class="got">${fmt(a.W)} × ${T.s1.m} : ${fmt(a.H)} × ${T.s1.m} = ${T.s1.p[0]} : ${T.s1.p[1]}</p>`;
+  }
+  html += `</div>`;
+  // 2단계: 최대공약수로 나누기
+  if (T.s1){
+    const [x, y] = T.s1.p;
+    html += `<div class="step"><h3>② 최대공약수로 나누어 가장 간단한 비로 나타내요</h3>`;
+    if (!T.done){
+      html += `
+        <p class="muted" style="margin-bottom:4px">${x}와(과) ${y}의 최대공약수로 두 수를 나누고, 계산한 결과를 적어요.</p>
+        <div class="eq"><span class="cw">${x}</span><span>÷</span>${IN('d2a','sm','긴 변을 나누는 수')}<span class="colon">:</span><span class="ch">${y}</span><span>÷</span>${IN('d2b','sm','짧은 변을 나누는 수')}</div>
+        <div class="eq"><span>=</span>${IN('a2','iw','긴 변 계산 결과')}<span class="colon">:</span>${IN('b2','ih','짧은 변 계산 결과')}</div>
+        <div class="row"><button class="btn" id="c2">확인</button><button class="btn line" id="h2"${T.h2 >= 2 ? ' disabled' : ''}>힌트</button></div>
+        <div class="fb" id="f2"></div>${hint2Html(T.s1.p, T.h2)}`;
+    } else if (T.s2 && T.s2.d > 1){
+      html += `<p class="got">${x} ÷ ${T.s2.d} : ${y} ÷ ${T.s2.d} = ${sa} : ${sb}</p>`;
+    } else {
+      html += `<p class="got">${x}와(과) ${y}의 최대공약수는 1이에요. 더 나눌 수 없으니 ${x} : ${y}가 가장 간단한 비예요.</p>`;
+    }
+    html += `</div>`;
+  }
+  if (T.done){
+    const stars = S.stars[S.i];
+    const last = S.i === STAGES.length - 1;
+    html += `
+      <div class="win">
+        <div class="stars" aria-label="별 ${stars}개">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+        <p style="margin:4px 0 0">(${st.k}) 종이의 긴 변 : 짧은 변 = <b class="big">${sa} : ${sb}</b></p>
+        <div class="actions" style="justify-content:center"><button class="btn" id="next">${last ? '결과 보기' : `(${STAGES[S.i + 1].k}) 접으러 가기`}</button></div>
+      </div>`;
+  }
+  P.innerHTML = html;
+  bindWork(st);
+}
+function hint1Html(a, m, n){
+  if (!n) return '';
+  let t = S.mode === 'dec'
+    ? '소수점 아래 자리 수를 보세요. 소수 한 자리 수만 있으면 양쪽에 10을, 소수 두 자리 수가 있으면 양쪽에 100을 곱하면 두 수가 모두 자연수가 돼요.'
+    : '분수 부분의 분모를 보세요. 분모가 2이면 양쪽에 2를, 분모가 4이면 양쪽에 4를 곱하면 자연수가 돼요.';
+  let h = `<div class="hint">💡 ${t}</div>`;
+  if (n >= 2) h += `<div class="hint">💡 양쪽에 ${m}${eul(m)} 곱하면 <b>${dv(a.W)*m/UNIT()} : ${dv(a.H)*m/UNIT()}</b>이에요.</div>`;
+  return h;
+}
+function hint2Html(p, n){
+  if (!n) return '';
+  let h = `<div class="hint">💡 두 수를 함께 나눌 수 있는 수(공약수)를 찾아요. 끝자리가 0이나 5이면 5로, 각 자리 숫자의 합이 3의 배수이면 3으로 나누어져요. 여러 번 나누어도 괜찮아요.</div>`;
+  if (n >= 2){ const g = gcd(p[0], p[1]); h += `<div class="hint">💡 ${p[0]}, ${p[1]}의 최대공약수는 <b>${g}</b>예요. 양쪽을 ${g}(으)로 나눠 보세요.</div>`; }
+  return h;
+}
+function readNums(ids){
+  const v = ids.map(id => $(id).value.trim());
+  if (v.some(t => !/^\d+$/.test(t) || +t === 0)) return null;
+  return v.map(Number);
+}
+function feedback(id, ok, msg){ const f = $(id); f.className = 'fb ' + (ok ? 'ok' : 'bad'); f.textContent = msg; }
+function finishStage(){
+  const T = S.st, used = T.h1 + T.h2;
+  S.stars[S.i] = Math.max(1, 3 - used - (T.wrong >= 3 ? 1 : 0));
+  T.done = true;
+  renderTrack(); renderPanel();
+  const n = $('#next'); if (n) n.focus({preventScroll:true});
+}
+function bindWork(st){
+  const a = st.meas, T = S.st, U = UNIT();
+  const enter = (ids, fn) => ids.forEach(s => { if ($(s)) $(s).onkeydown = e => { if (e.key === 'Enter') fn(); }; });
+  if ($('#c1')){
+    const ids = ['#m1a','#m1b','#a1','#b1'];
+    const check1 = () => {
+      const v = readNums(ids);
+      if (!v) return feedback('#f1', false, '빈칸을 모두 자연수로 채워 주세요.');
+      const [ma, mb, x, y] = v;
+      if (ma !== mb){ T.wrong++; return feedback('#f1', false, '긴 변과 짧은 변에 같은 수를 곱해야 비가 그대로예요.'); }
+      const ex = dv(a.W) * ma / U, ey = dv(a.H) * ma / U;
+      if (!Number.isInteger(ex) || !Number.isInteger(ey)){ T.wrong++; return feedback('#f1', false, `${ma}${eul(ma)} 곱해도 아직 자연수가 되지 않아요. 곱하는 수를 다시 생각해 보세요.`); }
+      if (x !== ex || y !== ey){ T.wrong++; return feedback('#f1', false, '곱하는 수는 좋아요. 곱셈 결과를 다시 계산해 보세요.'); }
+      T.s1 = {m: ma, p: [x, y]};
+      if (gcd(x, y) === 1){ T.s2 = {d: 1, p: [x, y]}; finishStage(); return; }
+      renderPanel(); const i = $('#d2a'); if (i) i.focus({preventScroll:true});
+    };
+    $('#c1').onclick = check1; enter(ids, check1);
+    $('#h1').onclick = () => { T.h1 = Math.min(2, T.h1 + 1); keepAndRender(); };
+  }
+  if ($('#c2')){
+    const ids = ['#d2a','#d2b','#a2','#b2'];
+    const check2 = () => {
+      const v = readNums(ids);
+      if (!v) return feedback('#f2', false, '빈칸을 모두 자연수로 채워 주세요.');
+      const [da, db, x, y] = v, [px0, py0] = T.s1.p, g = gcd(px0, py0);
+      if (da !== db){ T.wrong++; return feedback('#f2', false, '긴 변과 짧은 변을 같은 수로 나누어야 비가 그대로예요.'); }
+      if (px0 % da || py0 % da){ T.wrong++; return feedback('#f2', false, `${px0}와(과) ${py0} 중에 ${da}(으)로 나누어떨어지지 않는 수가 있어요. 두 수의 공약수로 나누어 보세요.`); }
+      if (x !== px0 / da || y !== py0 / da){ T.wrong++; return feedback('#f2', false, '나누는 수는 좋아요. 나눗셈 결과를 다시 계산해 보세요.'); }
+      if (da !== g){ T.wrong++; return feedback('#f2', false, `${da}(으)로 나눈 계산은 맞아요. 하지만 ${x} : ${y}는 아직 더 나눌 수 있어요. 최대공약수를 찾아 한 번에 나누어 보세요.`); }
+      T.s2 = {d: da, p: [x, y]};
+      finishStage();
+    };
+    $('#c2').onclick = check2; enter(ids, check2);
+    $('#h2').onclick = () => { T.h2 = Math.min(2, T.h2 + 1); keepAndRender(); };
+  }
+  const nx = $('#next');
+  if (nx) nx.onclick = () => {
+    if (S.i === STAGES.length - 1){ S.phase = 'summary'; render(); return; }
+    S.i++; S.phase = 'fold'; S.st = freshStage(); render();
+  };
+}
+function keepAndRender(){
+  const keep = [...document.querySelectorAll('#panel input')].map(i => [i.id, i.value]);
+  renderPanel();
+  keep.forEach(([id, v]) => { const i = document.getElementById(id); if (i) i.value = v; });
+}
+
+/* ---------- 결과 ---------- */
+function renderSummary(){
+  const total = S.stars.reduce((s, v) => s + v, 0);
+  const papers = [{k:'A4 원래', n:0, m:A4M}].concat(STAGES.map(st => ({k:'(' + st.k + ')', n:st.n, m:st.meas})));
+  const size = n => n === 0 ? '1' : `<span class="fr" aria-hidden="true"><span>1</span><span>${2 ** n}</span></span><span class="sr">${2 ** n}분의 1</span>`;
+  const rows = papers.map((pp, idx) => `<tr${idx === 0 ? ' class="base"' : ''}>
+      <td class="r">${pp.k}</td><td>${pp.n}</td><td class="big" style="font-size:19px">${size(pp.n)}</td>
+      <td class="cw">${fmt(pp.m.W)}</td><td class="ch">${fmt(pp.m.H)}</td>
+      <td class="r">${simplest(pp.m).join(' : ')}</td>
+      <td><span class="eq" style="justify-content:center;margin:0"><input id="rt${idx}" class="sm" style="width:84px" inputmode="decimal" autocomplete="off" aria-label="${pp.k} 비율"></span></td>
+    </tr>`).join('');
+  const opts = [
+    '종이가 작아질수록 긴 변과 짧은 변의 비율도 작아진다.',
+    '종이의 크기는 반, 반의 반으로 달라져도 긴 변과 짧은 변의 비율은 같다.',
+    '접을수록 긴 변이 짧은 변보다 점점 더 길어진다.'
+  ];
+  $('#main').innerHTML = `
+    <section class="summary" aria-live="polite">
+      <h2>네 번 모두 접었어요!</h2>
+      <p>모은 별 <b style="color:var(--star)">${total}</b> / 12</p>
+      <div class="tbl"><table>
+        <thead><tr><th>종이</th><th>접은 횟수</th><th>크기 (원래 A4의)</th><th>긴 변 (mm)</th><th>짧은 변 (mm)</th><th>가장 간단한 비</th><th>비율 (긴 변 ÷ 짧은 변)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div class="step">
+        <h3>발견 문제 ① 비율 구하기</h3>
+        <p>종이마다 <b>긴 변 ÷ 짧은 변</b>을 계산해서 표의 마지막 칸에 적어요. 소수 셋째 자리에서 반올림하여 소수 둘째 자리까지 나타내요.</p>
+        <div class="actions" style="margin-top:0"><button class="btn" id="cr">확인</button><button class="btn line" id="hr">힌트</button></div>
+        <div class="fb" id="fr"></div><div id="hrv"></div>
+      </div>
+      <div id="q2"></div>
+      <div class="actions" style="margin-top:18px"><button class="btn line" id="again">처음부터 다시 하기</button></div>
+    </section>`;
+  const target = '1.41';
+  $('#hr').onclick = () => { $('#hrv').innerHTML = `<div class="hint">💡 A4 원래: 297 ÷ 210 = 1.414… → 소수 셋째 자리 4를 버리면 1.41이에요. 나머지 종이도 같은 방법으로 계산해 보세요.</div>`; };
+  $('#cr').onclick = () => {
+    const wrong = papers.map((pp, idx) => ({pp, v: $('#rt' + idx).value.trim()})).filter(o => o.v !== target);
+    papers.forEach((pp, idx) => { $('#rt' + idx).style.borderColor = wrong.some(o => o.pp === pp) ? 'var(--bad)' : 'var(--ok)'; });
+    if (wrong.length){
+      const empty = wrong.some(o => o.v === '');
+      return feedback('#fr', false, empty ? '빈칸을 모두 채워 주세요.' : `${wrong.map(o => o.pp.k).join(', ')}의 비율을 다시 계산해 보세요.`);
+    }
+    feedback('#fr', true, '모두 맞았어요! 다섯 종이의 비율이 모두 1.41이에요.');
+    $('#cr').disabled = true; $('#hr').disabled = true;
+    $('#q2').innerHTML = `
+      <div class="step">
+        <h3>발견 문제 ② 무엇을 알 수 있나요?</h3>
+        <p>표를 보고 알맞은 것을 고르세요.</p>
+        <div style="display:grid;gap:8px">${opts.map((o, k) => `<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer"><input type="radio" name="cc" value="${k}" style="margin-top:6px">${o}</label>`).join('')}</div>
+        <div class="actions"><button class="btn" id="cc">확인</button></div>
+        <div class="fb" id="fc"></div><div id="rv"></div>
+      </div>`;
+    $('#cc').onclick = () => {
+      const c = document.querySelector('input[name="cc"]:checked');
+      if (!c) return feedback('#fc', false, '하나를 골라 주세요.');
+      if (c.value !== '1') return feedback('#fc', false, '표의 비율 칸을 다시 살펴보세요. 종이가 작아져도 비율은 어떻게 되었나요?');
+      feedback('#fc', true, '정답!');
+      $('#rv').innerHTML = `<div class="reveal">
+        <p><b>종이의 크기는 반, 반의 반으로 줄어들어도 긴 변과 짧은 변의 비율은 약 1.41로 같아요.</b> 그래서 A4 용지는 몇 번을 접어도 처음과 같은 모양이 돼요.</p>
+        <p style="margin:0" class="muted">더 알아보기: 가장 간단한 자연수의 비는 99 : 70과 140 : 99로 번갈아 나오지만, 두 비의 비율(1.4142…, 1.4141…)은 아주 가까워서 반올림하면 같은 1.41이 돼요.</p>
+      </div>`;
+    };
+  };
+  $('#again').onclick = () => { S.i = -1; S.phase = 'intro'; S.stars = []; S.st = null; render(); };
+}
+
+/* ---------- 표시 방식 ---------- */
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+  S.mode = b.dataset.mode;
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (S.phase === 'summary') return renderSummary();
+  if (S.st && !S.st.done){ S.st.s1 = null; S.st.s2 = null; }
+  redrawBoard(); renderPanel();
+});
+let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if ($('#stage') && !document.querySelector('.flap')) redrawBoard(); }, 120); });
+
+render();
+</script>
+</body>
+</html>
