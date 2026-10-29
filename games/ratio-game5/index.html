@@ -162,23 +162,11 @@ h1{margin:0;font-size:clamp(1.6rem,6vw,2.2rem);line-height:1.15}
     <h1 class="display">카드를 뒤집어 기억해</h1>
     <button class="ghost hidden" id="homeBtn" type="button">처음으로</button>
   </header>
-  <p class="sub">비와 비례식 카드 게임</p>
+  <p class="sub">소수와 분수의 비를 간단한 자연수의 비로 바꿔요</p>
 
   <section class="panel" id="setup">
-    <p class="label">게임 고르기</p>
-    <div class="count" id="modes" role="group" aria-label="게임 고르기">
-      <button type="button" data-m="1" aria-pressed="true">비례식 맞히기</button>
-      <button type="button" data-m="2" aria-pressed="false">자연수의 비 만들기</button>
-    </div>
     <h2 class="display">게임 방법</h2>
-    <ol class="rules" id="rules1">
-      <li>내 차례가 되면 카드 2장을 뒤집어요. 먼저 뒤집은 수가 앞, 나중에 뒤집은 수가 뒤에 와서 비가 돼요.</li>
-      <li>카드 2장을 더 뒤집은 뒤, 이 두 수로 비례식을 세울 수 있는지 맞혀요. 두 수의 순서는 바꿔도 돼요.</li>
-      <li>“비례식이 돼요”를 맞히면 카드 4장을 가져가요(+4점). “안 돼요”를 맞히면 +1점이에요.</li>
-      <li>차례가 끝나면 남은 카드는 다시 엎어져요. 어디에 어떤 수가 있었는지 잘 기억해 두세요!</li>
-      <li>남은 카드로 더 이상 비례식을 만들 수 없으면 게임이 끝나요.</li>
-    </ol>
-    <ol class="rules hidden" id="rules2">
+    <ol class="rules" id="rules2">
       <li>내 차례가 되면 카드 2장을 뒤집어요. 소수·분수·자연수 카드로 비가 만들어져요.</li>
       <li>이 비와 비율이 같은 자연수의 비를 □ : □에 써서 비례식을 완성해요.</li>
       <li>가장 간단한 자연수의 비로 쓰면 +3점, 맞지만 더 간단히 할 수 있으면 +2점이에요. 맞히면 카드 2장을 가져가요.</li>
@@ -193,7 +181,7 @@ h1{margin:0;font-size:clamp(1.6rem,6vw,2.2rem);line-height:1.15}
       <button type="button" data-n="4" aria-pressed="false">4명</button>
     </div>
     <div class="names" id="names"></div>
-    <label class="toggle hidden" id="strictWrap"><input type="checkbox" id="strict"><span>가장 간단한 자연수의 비만 정답으로 인정하기</span></label>
+    <label class="toggle" id="strictWrap"><input type="checkbox" id="strict"><span>가장 간단한 자연수의 비만 정답으로 인정하기</span></label>
     <div class="actions">
       <button class="btn" id="startBtn" type="button">게임 시작</button>
       <button class="btn alt" id="setupBonusBtn" type="button">추가 게임 바로 하기</button>
@@ -212,8 +200,6 @@ h1{margin:0;font-size:clamp(1.6rem,6vw,2.2rem);line-height:1.15}
     <div class="players" id="players"></div>
     <div class="feedback hidden" id="feedback" aria-live="polite"></div>
     <div class="actions">
-      <button class="btn yes hidden" id="yesBtn" type="button">비례식이 돼요</button>
-      <button class="btn no hidden" id="noBtn" type="button">비례식이 안 돼요</button>
       <button class="btn hidden" id="checkBtn" type="button">확인하기</button>
       <button class="btn alt hidden" id="nextBtn" type="button">다음 차례</button>
     </div>
@@ -319,7 +305,7 @@ function solve(a, b) {
   return { p: m1 / g, q: m2 / g, steps };
 }
 
-let playerCount = 2, S = null, mode = 1;
+let playerCount = 2, S = null, mode = 2;
 
 /* ----- 게임 1: 비례식 맞히기 (자연수 카드 16장) ----- */
 function makeDeck1() {
@@ -367,14 +353,6 @@ $('count').addEventListener('click', e => {
   $('count').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
   renderNames();
 });
-function setMode(m) {
-  mode = m;
-  $('modes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.m === m));
-  $('rules1').classList.toggle('hidden', m !== 1);
-  $('rules2').classList.toggle('hidden', m !== 2);
-  $('strictWrap').classList.toggle('hidden', m !== 2);
-}
-$('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(+b.dataset.m); });
 
 function startGame(names) {
   S = { mode, cards: mode === 1 ? makeDeck1() : makeDeck(), players: names.map(n => ({ name: n, score: 0 })),
@@ -385,7 +363,7 @@ function startGame(names) {
   buildBoard(); render();
 }
 $('startBtn').addEventListener('click', () => startGame([...$('names').querySelectorAll('input')].map((i, k) => i.value.trim() || (k + 1) + '모둠')));
-$('againBtn').addEventListener('click', () => { mode = S.mode; startGame(S.players.map(p => p.name)); });
+$('againBtn').addEventListener('click', () => startGame(S.players.map(p => p.name)));
 
 /* ----- 추가 게임: 같은 비 짝 맞추기 ----- */
 let B = null;
@@ -613,13 +591,15 @@ function feedback1(r) {
   }
   return `<p class="head">${head}</p><p>${body}</p><p class="calc">${calc}</p>`;
 }
+/* 숫자 뒤 '이에요/예요' */
+const ieyo = n => '0136781'.includes(String(n).slice(-1)) ? '이에요' : '예요';
 function feedback2(r) {
   const { x, y, sol, same, simplest, correct, gain } = r;
   let head, body;
   if (correct && simplest) { head = `정답! +${gain}점`; body = `${x} : ${y}, 가장 간단한 자연수의 비예요. 카드 2장을 가져가요.`; }
-  else if (correct) { head = `정답! +${gain}점`; body = `비례식은 맞아요. 더 간단히 하면 ${sol.p} : ${sol.q}예요. 카드 2장을 가져가요.`; }
-  else if (same) { head = '아쉬워요'; body = `${x} : ${y}도 비율은 같지만, 가장 간단한 자연수의 비는 ${sol.p} : ${sol.q}예요.`; }
-  else { head = '아쉬워요'; body = `쓴 비 ${x} : ${y}의 비율이 달라요. 정답은 ${sol.p} : ${sol.q}예요.`; }
+  else if (correct) { head = `정답! +${gain}점`; body = `비례식은 맞아요. 더 간단히 하면 ${sol.p} : ${sol.q}${ieyo(sol.q)}. 카드 2장을 가져가요.`; }
+  else if (same) { head = '아쉬워요'; body = `${x} : ${y}도 비율은 같지만, 가장 간단한 자연수의 비는 ${sol.p} : ${sol.q}${ieyo(sol.q)}.`; }
+  else { head = '아쉬워요'; body = `쓴 비 ${x} : ${y}의 비율이 달라요. 정답은 ${sol.p} : ${sol.q}${ieyo(sol.q)}.`; }
   const steps = sol.steps.length ? `<ol>${sol.steps.map(s => `<li>${s}</li>`).join('')}</ol>` : '';
   return `<p class="head">${head}</p><p>${body}</p>${steps}`;
 }
@@ -675,8 +655,6 @@ function render() {
   if (S.phase === 'result') { fb.innerHTML = m1 ? feedback1(S.result) : feedback2(S.result); fb.className = 'feedback ' + (S.result.correct ? 'ok' : 'bad'); }
   else fb.className = 'feedback hidden';
 
-  $('yesBtn').classList.toggle('hidden', S.phase !== 'judge');
-  $('noBtn').classList.toggle('hidden', S.phase !== 'judge');
   $('checkBtn').classList.toggle('hidden', !answering);
   $('nextBtn').classList.toggle('hidden', S.phase !== 'result');
   if (S.phase === 'result') $('nextBtn').focus({ preventScroll: true });
@@ -699,14 +677,11 @@ function endGame() {
   $('toBonusBtn').focus({ preventScroll: true });
 }
 
-$('yesBtn').addEventListener('click', () => judge(true));
-$('noBtn').addEventListener('click', () => judge(false));
 $('checkBtn').addEventListener('click', checkAnswer);
 $('nextBtn').addEventListener('click', nextTurn);
 $('in1').addEventListener('keydown', e => { if (e.key === 'Enter') $('in2').focus(); });
 $('in2').addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
 
-setMode(1);
 renderNames();
 </script>
 </body>
