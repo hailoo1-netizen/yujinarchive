@@ -1,1 +1,314 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>비율 픽셀그림 그리기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F7FB; --grid:#DCE6F0; --ink:#1F2A37; --soft:#5B6B7C;
+  --card:#FFFFFF; --line:#C9D6E3; --accent:#2F6FDE; --ok:#1E8E4E; --bad:#D23C3C;
+  --c-brown:#8B5A2B; --c-green:#3FA34D; --c-blue:#4AA3E8; --c-red:#E53935;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141B23; --grid:#1E2833; --ink:#E7EEF5; --soft:#9DB0C3;
+    --card:#1B242E; --line:#33424F; --accent:#6EA2FF; --ok:#4CC97F; --bad:#FF6B6B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141B23; --grid:#1E2833; --ink:#E7EEF5; --soft:#9DB0C3;
+  --card:#1B242E; --line:#33424F; --accent:#6EA2FF; --ok:#4CC97F; --bad:#FF6B6B;
+  color-scheme: dark;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; color:var(--ink); font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px; line-height:1.6;
+}
+main{max-width:760px;margin:0 auto;padding:28px 16px 60px}
+h1,h2,.jua{font-family:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:400}
+h1{font-size:clamp(28px,6vw,40px);margin:0 0 6px;line-height:1.2}
+.lead{margin:0 0 22px;color:var(--soft);font-size:17px}
+section{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:20px;margin-bottom:22px}
+h2{font-size:24px;margin:0 0 4px}
+.q{margin:0 0 16px;color:var(--soft)}
+
+/* 보기 */
+.bogi{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px;padding:12px 14px;border:2px dashed var(--line);border-radius:12px;background:var(--card)}
+.bogi b{font-family:"Jua",sans-serif;font-weight:400;font-size:18px;margin-right:4px;align-self:center}
+.bogi-copy{margin:0 0 14px;background:var(--paper)}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 6px;border-radius:999px;border:1.5px solid var(--line);font-weight:700;font-size:16px}
+.dot{width:20px;height:20px;border-radius:5px;display:inline-block}
+
+/* 1번 */
+.row{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.base{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}
+.pairs{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.pair{display:inline-flex;align-items:center;gap:4px}
+.pair input{width:54px;padding:6px 4px;font-size:17px;text-align:center;border:2px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+.pair input:focus{outline:3px solid var(--accent);outline-offset:1px}
+.pair.good input{border-color:var(--ok)}
+.pair.wrong input{border-color:var(--bad)}
+.msg{font-size:14px;min-height:1.2em;width:100%}
+.msg.good{color:var(--ok)} .msg.wrong{color:var(--bad)}
+
+/* 버튼 */
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+button{font:inherit;font-weight:700;cursor:pointer;border-radius:10px;padding:9px 16px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+button.main{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* 팔레트 */
+.palette{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.tool{display:inline-flex;align-items:center;gap:8px;padding:7px 12px}
+.tool[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.tool .dot{width:22px;height:22px}
+.eraser{background:repeating-linear-gradient(45deg,#fff 0 4px,#ddd 4px 8px);border:1px solid #aaa}
+
+/* 판 */
+.board-wrap{overflow-x:auto}
+.board{
+  display:grid;grid-template-columns:repeat(12,1fr);gap:0;
+  max-width:600px;margin:0 auto;border:2px solid var(--ink);user-select:none;touch-action:none;
+}
+.cell{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border:1px solid #9FB0C0;background:#fff;color:#1F2A37;
+  font-size:clamp(8px,2.2vw,13px);font-weight:700;letter-spacing:-.3px;cursor:crosshair;line-height:1;
+}
+.cell.painted{color:rgba(255,255,255,.9)}
+.cell.miss{outline:3px solid var(--bad);outline-offset:-3px;position:relative;z-index:1}
+.board.hide-num .cell.painted{color:transparent}
+.result{margin-top:14px;font-size:18px;font-weight:700;text-align:center;min-height:1.6em}
+.result.good{color:var(--ok)} .result.wrong{color:var(--bad)}
+.note{font-size:14px;color:var(--soft);margin:10px 0 0;text-align:center}
+
+@media (max-width:520px){
+  .row{grid-template-columns:1fr}
+  section{padding:16px 12px}
+}
+@media print{
+  body{background:#fff}
+  .btns,.palette{display:none}
+  section{break-inside:avoid;border-color:#999}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>비율 픽셀그림 그리기</h1>
+  <p class="lead">[보기]의 비와 비율이 같은 것을 찾아 알맞게 칠해 보세요. 어떤 모양의 픽셀그림이 나올까요?</p>
+
+  <div class="bogi" id="bogi"><b>[보기]</b></div>
+
+  <section>
+    <h2>1번</h2>
+    <p class="q">[보기]의 비와 비율이 같은 비를 각각 2개씩 써 보세요.</p>
+    <div id="p1"></div>
+    <div class="btns">
+      <button class="main" id="check1">정답 확인</button>
+      <button id="clear1">지우기</button>
+    </div>
+    <div class="result" id="res1" aria-live="polite"></div>
+  </section>
+
+  <section>
+    <h2>2번</h2>
+    <p class="q">위의 보기를 참고하여 픽셀 그림을 그려 보세요. [보기]의 어느 비와도 비율이 같지 않은 칸은 칠하지 않아요.</p>
+    <div class="bogi bogi-copy"><b>[보기]</b></div>
+    <div class="palette" id="palette" role="group" aria-label="색 고르기"></div>
+    <div class="board-wrap"><div class="board" id="board"></div></div>
+    <div class="btns" style="justify-content:center">
+      <button class="main" id="check2">정답 확인</button>
+      <button id="toggleNum">숫자 숨기기</button>
+      <button id="answer">정답 보기</button>
+      <button id="reset2">모두 지우기</button>
+      <button id="newBoard">새 문제</button>
+    </div>
+    <div class="result" id="res2" aria-live="polite"></div>
+    <p class="note">칸을 누르거나 끌어서 칠해요. 같은 색으로 다시 누르면 지워져요.</p>
+  </section>
+</main>
+
+<script>
+// ===== 보기 설정 =====
+const COLORS = {
+  N:{name:"갈색",  hex:"#8B5A2B"},
+  G:{name:"녹색",  hex:"#3FA34D"},
+  B:{name:"파란색",hex:"#4AA3E8"},
+  R:{name:"빨간색",hex:"#E53935"},
+  Y:{name:"회색",  hex:"#9AA1A8"}
+};
+const BOGI = [
+  {a:1,b:2,c:"N"},
+  {a:3,b:2,c:"Y"},
+  {a:2,b:3,c:"B"},
+  {a:5,b:4,c:"R"},
+  {a:7,b:3,c:"G"}
+];
+// 칠하지 않는 칸에 쓰는 함정 비 (보기 어느 것과도 비율이 다름)
+const TRAPS = [[2,1],[4,5],[3,4],[1,3],[3,5],[5,2],[4,3],[2,5]];
+
+// 그림: G 얼굴, N 머리카락·윙크·입, B 뜬 눈, Y 눈썹·눈동자, R 혀, W 배경(칠하지 않음)
+const PICTURE = [
+  "WWNNNWWWWWWW",
+  "WNNNGGGGGWWW",
+  "WNGGGGGGGGWW",
+  "WGYYGGGGGGGW",
+  "WGBYGGGGGGGW",
+  "WGBBGGGNNNGW",
+  "WGGGGGGGGGGW",
+  "WGGGGGGGGNGW",
+  "WGGNGGGGNGGW",
+  "WGGGNNNNRRGW",
+  "WWGGGGGGRRWW",
+  "WWWGGGGGWRWW"
+];
+
+// ===== 보기 표시 =====
+document.querySelectorAll(".bogi").forEach(bogiEl=>{
+  BOGI.forEach(r=>{
+    const s=document.createElement("span"); s.className="chip";
+    s.innerHTML=`<span class="dot" style="background:${COLORS[r.c].hex}"></span>${r.a} : ${r.b} = ${COLORS[r.c].name}`;
+    bogiEl.appendChild(s);
+  });
+});
+
+// ===== 1번 =====
+const p1=document.getElementById("p1");
+BOGI.forEach((r,i)=>{
+  const row=document.createElement("div"); row.className="row";
+  row.innerHTML=`<div class="base"><span class="dot" style="background:${COLORS[r.c].hex}"></span>${r.a} : ${r.b}</div>
+  <div class="pairs">
+    ${[0,1].map(j=>`<span class="pair" id="pair${i}_${j}">
+      <input inputmode="numeric" aria-label="${r.a}대${r.b}와 비율이 같은 비 ${j+1}번 앞항" data-i="${i}" data-j="${j}" data-k="0">
+      <span>:</span>
+      <input inputmode="numeric" aria-label="${r.a}대${r.b}와 비율이 같은 비 ${j+1}번 뒤항" data-i="${i}" data-j="${j}" data-k="1">
+    </span>`).join("")}
+    <div class="msg" id="msg${i}"></div>
+  </div>`;
+  p1.appendChild(row);
+});
+function val(i,j,k){const v=p1.querySelector(`input[data-i="${i}"][data-j="${j}"][data-k="${k}"]`).value.trim();return v===""?null:Number(v)}
+document.getElementById("check1").onclick=()=>{
+  let good=0;
+  BOGI.forEach((r,i)=>{
+    const msg=document.getElementById("msg"+i); const notes=[]; const ok=[false,false];
+    for(let j=0;j<2;j++){
+      const x=val(i,j,0), y=val(i,j,1), el=document.getElementById(`pair${i}_${j}`);
+      el.classList.remove("good","wrong");
+      if(x===null||y===null){notes.push(`${j+1}번 칸을 채워 주세요.`);el.classList.add("wrong");continue}
+      if(!(x>0&&y>0)){notes.push(`${j+1}번: 0보다 큰 수를 써요.`);el.classList.add("wrong");continue}
+      if(x===r.a&&y===r.b){notes.push(`${j+1}번: 보기와 똑같은 비예요. 다른 비를 써 보세요.`);el.classList.add("wrong");continue}
+      if(Math.abs(x*r.b-y*r.a)>1e-9){notes.push(`${j+1}번: ${x}:${y}의 비율은 ${r.a}:${r.b}와 달라요.`);el.classList.add("wrong");continue}
+      ok[j]=true; el.classList.add("good");
+    }
+    if(ok[0]&&ok[1]&&val(i,0,0)===val(i,1,0)&&val(i,0,1)===val(i,1,1)){
+      ok[1]=false; document.getElementById(`pair${i}_1`).className="pair wrong";
+      notes.push("두 비가 같아요. 서로 다른 비를 써 보세요.");
+    }
+    if(ok[0]&&ok[1]){good++;msg.className="msg good";msg.textContent="잘했어요!"}
+    else{msg.className="msg wrong";msg.textContent=notes.join(" ")}
+  });
+  const res=document.getElementById("res1");
+  res.className="result "+(good===5?"good":"wrong");
+  res.textContent=good===5?"5개 모두 맞았어요! 이제 2번으로 가요.":`5개 중 ${good}개 맞았어요.`;
+};
+document.getElementById("clear1").onclick=()=>{
+  p1.querySelectorAll("input").forEach(x=>x.value="");
+  p1.querySelectorAll(".pair").forEach(x=>x.className="pair");
+  p1.querySelectorAll(".msg").forEach(x=>{x.textContent="";x.className="msg"});
+  document.getElementById("res1").textContent="";
+};
+
+// ===== 2번 =====
+let seed=20261029;
+function rng(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+function pick(arr){return arr[Math.floor(rng()*arr.length)]}
+
+const board=document.getElementById("board");
+let answer=[], painted=[], labels=[];
+function build(){
+  board.innerHTML=""; answer=[]; painted=[]; labels=[];
+  PICTURE.forEach((line,y)=>[...line].forEach((ch,x)=>{
+    let a,b;
+    if(ch==="W"){const t=pick(TRAPS),k=1+Math.floor(rng()*5);a=t[0]*k;b=t[1]*k}
+    else{const r=pick(BOGI.filter(q=>q.c===ch)),k=2+Math.floor(rng()*4);a=r.a*k;b=r.b*k}
+    answer.push(ch==="W"?null:ch); painted.push(null); labels.push(`${a}:${b}`);
+    const c=document.createElement("div"); c.className="cell"; c.dataset.n=answer.length-1;
+    c.textContent=`${a}:${b}`; c.setAttribute("role","button"); c.setAttribute("aria-label",`${y+1}줄 ${x+1}칸 ${a}대${b}`);
+    board.appendChild(c);
+  }));
+  document.getElementById("res2").textContent="";
+}
+
+// 팔레트
+let tool="N";
+const pal=document.getElementById("palette");
+[...Object.keys(COLORS),"E"].forEach(k=>{
+  const b=document.createElement("button"); b.className="tool"; b.dataset.t=k;
+  b.setAttribute("aria-pressed",k===tool);
+  b.innerHTML=k==="E"?`<span class="dot eraser"></span>지우개`:`<span class="dot" style="background:${COLORS[k].hex}"></span>${COLORS[k].name}`;
+  b.onclick=()=>{tool=k;pal.querySelectorAll(".tool").forEach(t=>t.setAttribute("aria-pressed",t.dataset.t===k))};
+  pal.appendChild(b);
+});
+
+function setCell(n,c){
+  painted[n]=c; const el=board.children[n];
+  el.classList.remove("miss");
+  if(c){el.style.background=COLORS[c].hex;el.classList.add("painted")}
+  else{el.style.background="#fff";el.classList.remove("painted")}
+}
+let drag=false, dragMode=null;
+board.addEventListener("pointerdown",e=>{
+  const c=e.target.closest(".cell"); if(!c) return;
+  const n=+c.dataset.n;
+  dragMode = (tool==="E"||painted[n]===tool) ? null : tool;
+  setCell(n,dragMode); drag=true; e.preventDefault();
+});
+board.addEventListener("pointermove",e=>{
+  if(!drag) return;
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const c=el&&el.closest&&el.closest(".cell"); if(c) setCell(+c.dataset.n,dragMode);
+});
+window.addEventListener("pointerup",()=>drag=false);
+
+document.getElementById("check2").onclick=()=>{
+  let wrong=0;
+  answer.forEach((a,n)=>{const bad=painted[n]!==a;board.children[n].classList.toggle("miss",bad);if(bad)wrong++});
+  const res=document.getElementById("res2");
+  if(wrong===0){res.className="result good";res.textContent="완성! 한쪽 눈을 찡긋하고 혀를 내민 개구리 얼굴이 나왔어요. 🐸";board.classList.add("hide-num")}
+  else{res.className="result wrong";res.textContent=`빨간 테두리 칸 ${wrong}개를 다시 확인해 보세요.`}
+};
+document.getElementById("answer").onclick=()=>{
+  if(!confirm("정답을 보여 줄까요?")) return;
+  answer.forEach((a,n)=>setCell(n,a));
+  document.getElementById("res2").textContent="";
+};
+document.getElementById("reset2").onclick=()=>{
+  painted.forEach((_,n)=>setCell(n,null)); board.classList.remove("hide-num");
+  document.getElementById("res2").textContent="";
+};
+document.getElementById("toggleNum").onclick=e=>{
+  const h=board.classList.toggle("hide-num");
+  e.target.textContent=h?"숫자 보이기":"숫자 숨기기";
+};
+document.getElementById("newBoard").onclick=()=>{
+  if(!confirm("칸의 숫자를 새로 바꿀까요? 칠한 색은 지워져요.")) return;
+  seed=Math.floor(Math.random()*1e9); build(); board.classList.remove("hide-num");
+};
+build();
+</script>
+</body>
+</html>
