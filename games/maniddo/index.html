@@ -1,1 +1,534 @@
 
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>마니또의 방: 사자성어 방탈출</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E6E2D6; --sheet:#F5F2EA; --ink:#22262E; --muted:#5C6068; --line:#C7BFAD;
+  --jade:#2C6863; --jade-ink:#FFFFFF; --jade-soft:#D3E2DE;
+  --seal:#AE3328; --brass:#9C7020; --grid:#B3A98F; --danger:#A3352B;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161B23; --sheet:#1F2631; --ink:#ECE6D8; --muted:#A6A398; --line:#36404F;
+    --jade:#62AAA2; --jade-ink:#0E1918; --jade-soft:#22393A;
+    --seal:#E2604E; --brass:#D8AC52; --grid:#4A5466; --danger:#EE7B6B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161B23; --sheet:#1F2631; --ink:#ECE6D8; --muted:#A6A398; --line:#36404F;
+  --jade:#62AAA2; --jade-ink:#0E1918; --jade-soft:#22393A;
+  --seal:#E2604E; --brass:#D8AC52; --grid:#4A5466; --danger:#EE7B6B;
+  color-scheme: dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:17px; line-height:1.6; -webkit-text-size-adjust:100%;
+}
+main{max-width:560px;margin:0 auto;padding:28px 20px 56px;}
+h1,h2,.serif{font-family:"Gowun Batang","Nanum Myeongjo","AppleMyungjo",serif;}
+h2{font-size:1.6rem;line-height:1.3;margin:6px 0 4px;font-weight:700}
+p{margin:0 0 12px}
+.lead{color:var(--muted)}
+
+/* 원고지 칸 */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:22px 0 14px;border:2px solid var(--grid);background:var(--sheet)}
+.tile{
+  aspect-ratio:1/1; display:flex;align-items:center;justify-content:center;position:relative;
+  font-family:"Gowun Batang",serif;font-weight:700;font-size:clamp(34px,11vw,60px);line-height:1;
+  border-right:1px solid var(--grid);
+}
+.tile:last-child{border-right:0}
+.tile.blank{color:var(--grid)}
+.tile.hint{color:var(--brass)}
+.tile.slot{cursor:pointer}
+.tile.slot:empty::after{content:"";width:28%;height:2px;background:var(--grid)}
+.hero .tile:last-child{color:var(--seal)}
+.hanja{text-align:center;font-family:"Gowun Batang",serif;letter-spacing:.5em;color:var(--muted);margin:-4px 0 10px;padding-left:.5em}
+
+/* 열쇠 */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.who{font-family:"Gowun Batang",serif;font-weight:700;font-size:1.05rem}
+.keys{display:flex;gap:6px}
+.key{width:34px;height:34px;border:1.5px dashed var(--grid);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--grid)}
+.key svg{width:20px;height:20px}
+.key.on{border:1.5px solid var(--brass);color:var(--brass);background:var(--sheet)}
+.key.new{animation:pop .5s ease-out}
+
+.meaning{background:var(--sheet);border-left:4px solid var(--jade);padding:12px 14px;margin:0 0 16px}
+.meaning b{font-weight:400;color:var(--jade);margin-right:6px}
+
+/* 입력, 버튼 */
+label{display:block;font-size:.95rem;color:var(--muted);margin:18px 0 6px}
+input[type=text]{
+  width:100%;font:inherit;font-size:1.15rem;padding:12px 14px;border:1.5px solid var(--line);border-radius:6px;
+  background:var(--sheet);color:var(--ink);
+}
+input[type=text]:focus{outline:none;border-color:var(--jade);box-shadow:0 0 0 3px var(--jade-soft)}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{
+  display:block;width:100%;margin-top:14px;padding:14px 16px;border:0;border-radius:6px;
+  background:var(--jade);color:var(--jade-ink);font-size:1.1rem;font-family:"Gowun Batang",serif;font-weight:700;
+}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);font-family:inherit;font-weight:400;font-size:1rem}
+:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+
+.nums{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.num{
+  aspect-ratio:1/1;border:1.5px solid var(--line);border-radius:6px;background:var(--sheet);
+  font-family:"Gowun Batang",serif;font-weight:700;font-size:1.15rem;
+}
+.num[aria-pressed=true]{background:var(--jade);color:var(--jade-ink);border-color:var(--jade)}
+
+.choices{display:grid;gap:10px}
+.choice{
+  padding:14px;border:1.5px solid var(--line);border-radius:6px;background:var(--sheet);
+  font-family:"Gowun Batang",serif;font-weight:700;font-size:1.4rem;letter-spacing:.15em;
+}
+.choice:disabled{text-decoration:line-through;color:var(--muted);opacity:.6;cursor:not-allowed}
+
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+.chip{
+  padding:12px 0;border:1.5px solid var(--line);border-radius:6px;background:var(--sheet);
+  font-family:"Gowun Batang",serif;font-weight:700;font-size:1.5rem;
+}
+.chip:disabled{visibility:hidden}
+
+.msg{min-height:1.6em;margin-top:12px;color:var(--danger)}
+.msg.ok{color:var(--jade)}
+.small{font-size:.92rem;color:var(--muted)}
+
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+@keyframes pop{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* 도장 */
+.stampwrap{position:relative}
+.seal{
+  position:absolute;right:-6px;top:-18px;width:78px;height:78px;border:3px solid var(--seal);border-radius:8px;
+  color:var(--seal);font-family:"Gowun Batang",serif;font-weight:700;font-size:1.35rem;line-height:1.05;
+  display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-9deg);
+  background:color-mix(in srgb,var(--sheet) 70%,transparent);animation:stamp .45s cubic-bezier(.2,1.4,.5,1) both;
+}
+@keyframes stamp{0%{transform:rotate(-9deg) scale(1.9);opacity:0}100%{transform:rotate(-9deg) scale(1);opacity:1}}
+
+/* 문, 결과 */
+.door{
+  margin:24px auto 8px;width:min(240px,70%);aspect-ratio:3/4;border:3px solid var(--ink);border-bottom-width:6px;
+  background:repeating-linear-gradient(90deg,var(--sheet) 0 22%,var(--line) 22% 23%);
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+.door .lock{width:56px;height:56px;border-radius:50%;background:var(--paper);border:3px solid var(--brass);display:flex;align-items:center;justify-content:center;color:var(--brass)}
+.door .lock svg{width:28px;height:28px}
+.reveal{text-align:center;margin-top:18px}
+.reveal .big{
+  font-family:"Gowun Batang",serif;font-weight:700;font-size:clamp(96px,32vw,168px);line-height:1;color:var(--seal);
+  animation:pop .6s ease-out both;
+}
+.reveal .big small{font-size:.32em;color:var(--ink);margin-left:4px}
+.secret{background:var(--sheet);border:1.5px dashed var(--seal);padding:12px 14px;margin:18px 0 0;text-align:left}
+
+.foot{margin-top:36px;text-align:center}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.92rem;padding:8px}
+
+dialog{border:0;border-radius:10px;background:var(--sheet);color:var(--ink);padding:22px;width:min(440px,92vw);max-height:86vh}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:1rem}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:center}
+th{font-weight:400;color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+.prog{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:2px 0 16px}
+.seg{height:6px;background:var(--line);border-radius:3px}
+.seg.on{background:var(--brass)}
+.seg.now{background:var(--jade)}
+.count{display:flex;align-items:center;gap:6px;color:var(--brass);font-family:"Gowun Batang",serif;font-weight:700}
+.count svg{width:20px;height:20px}
+.tag{display:inline-block;font-size:.85rem;padding:2px 10px;border-radius:999px;border:1.5px solid var(--jade);color:var(--jade);margin-bottom:2px}
+.tag.sp{border-color:var(--brass);color:var(--brass)}
+.sentence{font-family:"Gowun Batang",serif;font-size:1.35rem;line-height:1.9;background:var(--sheet);border:2px solid var(--grid);padding:18px 16px;margin:18px 0 16px}
+.gap{display:inline-block;min-width:2.6em;border-bottom:2.5px solid var(--jade);margin:0 2px;text-align:center}
+.gap.fill{color:var(--jade);font-weight:700;padding:0 3px}
+.choices.two{grid-template-columns:1fr 1fr}
+.choices.two .choice{letter-spacing:.02em}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+
+<dialog id="teacher">
+  <h2 style="margin-top:0">선생님 확인용 명단</h2>
+  <p class="small">학생들이 입력한 비밀 코드와 같은 코드를 넣으면 전체 마니또 짝이 나와요. 학생에게 보이지 않게 확인하세요.</p>
+  <label for="tcode">비밀 코드</label>
+  <input type="text" id="tcode" autocomplete="off">
+  <button class="btn" id="tshow">명단 보기</button>
+  <div class="tablewrap" id="tlist"></div>
+  <button class="btn ghost" id="tclose">닫기</button>
+</dialog>
+
+<script>
+const NUMBERS=[1,2,3,5,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+const IDIOM_COUNT=5, SPELL_COUNT=5;
+
+const IDIOMS=[
+ {w:'일석이조',h:'一石二鳥',m:'한 가지 일로 두 가지 이익을 얻음'},
+ {w:'동문서답',h:'東問西答',m:'묻는 말에 전혀 엉뚱한 대답을 함'},
+ {w:'작심삼일',h:'作心三日',m:'굳게 먹은 마음이 사흘을 가지 못함'},
+ {w:'우이독경',h:'牛耳讀經',m:'쇠귀에 경 읽기. 아무리 말해 줘도 알아듣지 못함'},
+ {w:'설상가상',h:'雪上加霜',m:'눈 위에 서리가 덮임. 어려운 일이 겹쳐 일어남'},
+ {w:'금상첨화',h:'錦上添花',m:'비단 위에 꽃을 더함. 좋은 일에 또 좋은 일이 더해짐'},
+ {w:'죽마고우',h:'竹馬故友',m:'대나무 말을 타고 놀던 옛 친구. 어릴 때부터 친한 친구'},
+ {w:'대기만성',h:'大器晩成',m:'큰 그릇은 늦게 이루어짐. 큰 인물은 늦게 성공함'},
+ {w:'마이동풍',h:'馬耳東風',m:'남의 말을 귀담아듣지 않고 흘려버림'},
+ {w:'이심전심',h:'以心傳心',m:'말하지 않아도 마음과 마음으로 뜻이 통함'},
+ {w:'유비무환',h:'有備無患',m:'미리 준비가 되어 있으면 걱정할 것이 없음'},
+ {w:'십시일반',h:'十匙一飯',m:'열 숟가락이 모여 밥 한 그릇. 여럿이 조금씩 힘을 모으면 한 사람을 도울 수 있음'},
+ {w:'자업자득',h:'自業自得',m:'자기가 저지른 일의 결과를 자기가 받음'},
+ {w:'과유불급',h:'過猶不及',m:'지나친 것은 모자란 것과 같음'},
+ {w:'고진감래',h:'苦盡甘來',m:'쓴 것이 다하면 단 것이 옴. 고생 끝에 즐거움이 옴'},
+ {w:'역지사지',h:'易地思之',m:'처지를 바꾸어 다른 사람의 입장에서 생각해 봄'},
+ {w:'오리무중',h:'五里霧中',m:'오 리나 되는 짙은 안개 속. 일이 어떻게 될지 전혀 알 수 없음'},
+ {w:'청출어람',h:'靑出於藍',m:'쪽에서 나온 푸른색이 쪽보다 더 푸름. 제자가 스승보다 나음'},
+ {w:'형설지공',h:'螢雪之功',m:'반딧불과 눈빛으로 공부함. 어려운 환경에서도 부지런히 공부함'},
+ {w:'어부지리',h:'漁夫之利',m:'둘이 다투는 사이에 엉뚱한 사람이 이익을 얻음'},
+ {w:'결초보은',h:'結草報恩',m:'풀을 묶어 은혜를 갚음. 죽어서도 은혜를 잊지 않고 갚음'},
+ {w:'다다익선',h:'多多益善',m:'많으면 많을수록 더 좋음'},
+ {w:'사필귀정',h:'事必歸正',m:'모든 일은 결국 반드시 바른길로 돌아감'},
+ {w:'우공이산',h:'愚公移山',m:'우공이 산을 옮김. 꾸준히 노력하면 큰일도 이룰 수 있음'},
+ {w:'칠전팔기',h:'七顚八起',m:'일곱 번 넘어져도 여덟 번 일어남. 실패해도 굴하지 않음'},
+ {w:'인과응보',h:'因果應報',m:'좋은 일을 하면 좋은 결과가, 나쁜 일을 하면 나쁜 결과가 돌아옴'},
+ {w:'일취월장',h:'日就月將',m:'날마다 달마다 자라고 발전함'},
+ {w:'동고동락',h:'同苦同樂',m:'괴로움과 즐거움을 함께함'},
+ {w:'감언이설',h:'甘言利說',m:'듣기 좋게 꾸민 달콤한 말과 이로운 조건으로 꾀는 말'},
+ {w:'견물생심',h:'見物生心',m:'물건을 보면 가지고 싶은 마음이 생김'},
+ {w:'언중유골',h:'言中有骨',m:'말 속에 뼈가 있음. 평범한 말 속에 깊은 뜻이 숨어 있음'},
+ {w:'호시탐탐',h:'虎視眈眈',m:'호랑이가 먹이를 노려봄. 기회를 엿보며 가만히 노림'},
+ {w:'주경야독',h:'晝耕夜讀',m:'낮에는 일하고 밤에는 공부함'},
+ {w:'박장대소',h:'拍掌大笑',m:'손뼉을 치며 크게 웃음'}
+];
+
+/* 맞춤법: 문장의 ___ 자리에 들어갈 바른 말 고르기 (o의 첫 번째가 정답, 화면에서는 섞여서 나옴) */
+const SPELLS=[
+ {s:'숙제를 아직 ___ 했어요.',o:['안','않'],e:'‘안’은 ‘아니’의 준말이에요. ‘않’은 ‘먹지 않다’처럼 ‘-지’ 뒤에 써요.'},
+ {s:'오늘은 아침을 먹지 ___았어요.',o:['않','안'],e:'‘-지’ 뒤에는 ‘않다’를 써요.'},
+ {s:'교실 청소는 내가 할___.',o:['게','께'],e:'[께]로 소리 나도 ‘-ㄹ게’로 써요.'},
+ {s:'복도에서 뛰면 안 ___.',o:['돼','되'],e:'‘되어’로 바꿔도 말이 되면 ‘돼’예요. 안 되어 → 안 돼'},
+ {s:'나는 커서 의사가 ___고 싶어요.',o:['되','돼'],e:'‘되어고’는 어색하니 ‘되’를 써요.'},
+ {s:'___ 친구를 만나서 반가웠어요.',o:['오랜만에','오랫만에'],e:'‘오래간만에’가 줄어서 ‘오랜만에’예요.'},
+ {s:'방학까지 ___ 남았을까?',o:['며칠','몇일'],e:'‘몇 일’이 아니라 언제나 ‘며칠’로 써요.'},
+ {s:'저녁을 먹고 ___를 도왔어요.',o:['설거지','설겆이'],e:'표준어는 ‘설거지’예요.'},
+ {s:'모둠에서 내 ___은 발표예요.',o:['역할','역활'],e:'‘役割’, 바른 표기는 ‘역할’이에요.'},
+ {s:'세상에 이런 ___ 일이 다 있네.',o:['희한한','희안한'],e:'매우 드물고 신기하다는 뜻은 ‘희한하다’예요.'},
+ {s:'너무 ___ 웃음이 나왔어요.',o:['어이없어서','어의없어서'],e:'‘어이’는 ‘어처구니’와 같은 말이에요.'},
+ {s:'아이스크림이 ___ 녹아 버렸어요.',o:['금세','금새'],e:'‘금시에’가 줄어서 ‘금세’예요.'},
+ {s:'동생이 ___ 내 연필을 숨겼어요.',o:['일부러','일부로'],e:'‘일부러’가 바른 말이에요.'},
+ {s:'오늘은 ___ 기분이 좋아요.',o:['왠지','웬지'],e:'‘왜인지’가 줄어서 ‘왠지’예요.'},
+ {s:'네가 여기까지 ___이야?',o:['웬일','왠일'],e:'‘어찌 된 일’이라는 뜻은 ‘웬일’이에요.'},
+ {s:'푹신한 ___를 베고 잤어요.',o:['베개','배게'],e:'머리를 베는 물건은 ‘베개’예요.'},
+ {s:'어려운 문제를 ___ 생각해 보았어요.',o:['곰곰이','곰곰히'],e:'‘곰곰이’가 바른 말이에요.'},
+ {s:'밥 먹기 전에 손을 ___ 씻어요.',o:['깨끗이','깨끗히'],e:'‘-하다’ 앞이 ‘ㅅ’ 받침이면 대개 ‘-이’로 써요. 깨끗이, 따뜻이'},
+ {s:'감기가 빨리 ___기를 바라.',o:['낫','낳'],e:'병이 좋아지는 것은 ‘낫다’, 아기를 태어나게 하는 것은 ‘낳다’예요.'},
+ {s:'퀴즈 정답을 모두 ___.',o:['맞혔다','맞췄다'],e:'답을 틀리지 않게 하는 것은 ‘맞히다’, 둘을 대어 보는 것은 ‘맞추다’예요.'},
+ {s:'손가락으로 북쪽을 ___.',o:['가리켰다','가르쳤다'],e:'방향을 짚는 것은 ‘가리키다’, 지식을 알려 주는 것은 ‘가르치다’예요.'},
+ {s:'선생님께서 구구단을 ___ 주셨다.',o:['가르쳐','가리켜'],e:'지식을 알려 주는 것은 ‘가르치다’예요.'},
+ {s:'나와 동생은 성격이 ___.',o:['달라','틀려'],e:'같지 않은 것은 ‘다르다’, 맞지 않은 것은 ‘틀리다’예요.'},
+ {s:'우체국에서 할머니께 편지를 ___.',o:['부쳤다','붙였다'],e:'우편으로 보내는 것은 ‘부치다’, 떨어지지 않게 하는 것은 ‘붙이다’예요.'},
+ {s:'봉투에 우표를 ___.',o:['붙였다','부쳤다'],e:'떨어지지 않게 하는 것은 ‘붙이다’예요.'},
+ {s:'학생___ 지켜야 할 약속이 있어요.',o:['으로서','으로써'],e:'자격이나 신분은 ‘(으)로서’, 도구나 방법은 ‘(으)로써’예요.'},
+ {s:'엄마가 카드로 책값을 ___했어요.',o:['결제','결재'],e:'값을 치르는 것은 ‘결제’, 윗사람이 승인하는 것은 ‘결재’예요.'},
+ {s:'집에 가는 길에 문구점에 ___.',o:['들렀다','들렸다'],e:'잠깐 머무르는 것은 ‘들르다’라서 ‘들렀다’예요.'},
+ {s:'준비물을 두고 왔어. ___?',o:['어떡해','어떻해'],e:'‘어떻게 해’가 줄어서 ‘어떡해’예요.'},
+ {s:'사과___ 배___ 아무거나 좋아요.',o:['든지','던지'],e:'고르는 것은 ‘-든지’, 지난 일을 떠올리는 것은 ‘-던지’예요.'},
+ {s:'어제는 얼마나 추웠___지 손이 꽁꽁 얼었어요.',o:['던','든'],e:'지난 일을 떠올릴 때는 ‘-던지’를 써요.'},
+ {s:'사탕의 ___를 세어 보았어요.',o:['개수','갯수'],e:'한자어끼리 만난 말에는 사이시옷을 쓰지 않아요.'},
+ {s:'나의 ___은 가족 모두 건강한 거예요.',o:['바람','바램'],e:'‘바라다’의 명사형은 ‘바람’이에요.'},
+ {s:'소풍 전날이라 ___이 가득해요.',o:['설렘','설레임'],e:'‘설레다’의 명사형은 ‘설렘’이에요.'},
+ {s:'친구를 ___ 동안 기다렸어요.',o:['한참','한창'],e:'시간이 꽤 지나는 것은 ‘한참’, 가장 활발한 때는 ‘한창’이에요.'},
+ {s:'운동장에 눈이 ___ 쌓였어요.',o:['수북이','수북히'],e:'‘수북이’가 바른 말이에요.'}
+];
+
+const KEY_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="12" r="4"/><path d="M11 12h10M17 12v3M20.5 12v2.5"/></svg>';
+const LOCK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+/* ---------- 마니또 짝 정하기: 같은 코드면 어느 기기에서나 같은 결과 ---------- */
+function norm(s){return (s||'').replace(/\s+/g,'').toLowerCase();}
+function seedFrom(s){let h=2166136261>>>0;for(const c of s){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function buildMatch(code){
+  const rnd=mulberry32(seedFrom('manitto:'+norm(code)));
+  const a=NUMBERS.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  const map={};a.forEach((n,i)=>{map[n]=a[(i+1)%a.length];});
+  return map;
+}
+
+/* ---------- 상태 ---------- */
+const app=document.getElementById('app');
+let S={code:'',num:null,quiz:[],step:0,usedIdioms:[]};
+
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildQuiz(){
+  const ids=shuffle(IDIOMS.map((_,i)=>i)).slice(0,IDIOM_COUNT);
+  const types=['blank','choice','pieces'];
+  const idiomQs=ids.map((i,k)=>({kind:'idiom',type:k<3?types[k]:types[Math.floor(Math.random()*3)],i}));
+  const spellQs=shuffle(SPELLS.map((_,i)=>i)).slice(0,SPELL_COUNT).map(i=>({kind:'spell',i}));
+  S.usedIdioms=ids;
+  return shuffle([...idiomQs,...spellQs]);
+}
+function tilesHTML(chars,cls){return '<div class="tiles '+(cls||'')+'">'+chars.map(c=>'<div class="tile'+(c.cls?' '+c.cls:'')+'">'+(c.t||'')+'</div>').join('')+'</div>';}
+function barHTML(done){
+  const n=S.quiz.length;
+  let seg='';for(let i=0;i<n;i++){seg+='<span class="seg'+(i<done?' on':(i===done?' now':''))+'"></span>';}
+  return `<div class="bar"><span class="who">${S.num}번</span><span class="count" aria-label="모은 열쇠 ${done}개">${KEY_SVG}${done} / ${n}</span></div><div class="prog" style="grid-template-columns:repeat(${n},1fr)">${seg}</div>`;
+}
+function headHTML(q,lead){
+  const tag=q.kind==='spell'?'<span class="tag sp">맞춤법</span>':'<span class="tag">사자성어</span>';
+  return `${barHTML(S.step)}${tag}<h2>${S.step+1}번째 문</h2><p class="lead">${lead}</p>`;
+}
+function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');}
+
+/* ---------- 시작 화면 ---------- */
+function start(){
+  S.num=null;S.step=0;S.quiz=[];
+  app.innerHTML=`
+    ${tilesHTML([{t:'마'},{t:'니'},{t:'또'},{t:'?'}],'hero')}
+    <h1 style="font-size:1.9rem;line-height:1.3;margin:0 0 8px">마니또의 방</h1>
+    <p class="lead">사자성어와 맞춤법 문 ${IDIOM_COUNT+SPELL_COUNT}개를 모두 열면 마지막 방에서 나의 마니또가 기다리고 있어요.</p>
+    <label for="code">선생님이 알려 준 비밀 코드</label>
+    <input type="text" id="code" autocomplete="off" value="${S.code.replace(/"/g,'&quot;')}">
+    <label>내 번호</label>
+    <div class="nums" role="group" aria-label="내 번호">
+      ${NUMBERS.map(n=>`<button class="num" data-n="${n}" aria-pressed="false">${n}</button>`).join('')}
+    </div>
+    <button class="btn" id="go" disabled>번호를 골라 주세요</button>
+    <div class="msg" id="msg"></div>
+    <div class="foot"><button class="linkbtn" id="tbtn">선생님 확인용 명단</button></div>`;
+  const go=document.getElementById('go');
+  app.querySelectorAll('.num').forEach(b=>b.onclick=()=>{
+    app.querySelectorAll('.num').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');S.num=+b.dataset.n;
+    go.disabled=false;go.textContent=S.num+'번으로 방에 들어가기';
+  });
+  go.onclick=()=>{
+    const c=document.getElementById('code').value;
+    if(!norm(c)){document.getElementById('msg').textContent='비밀 코드를 먼저 입력하세요.';shake(document.getElementById('code'));return;}
+    S.code=c;S.quiz=buildQuiz();S.step=0;room();
+  };
+  document.getElementById('tbtn').onclick=openTeacher;
+}
+
+function room(){
+  const q=S.quiz[S.step];
+  if(q.kind==='spell')spell(q);
+  else ({blank:idiomBlank,choice:idiomChoice,pieces:idiomPieces})[q.type](q);
+  window.scrollTo(0,0);
+}
+
+/* ---------- 사자성어: 빈칸 ---------- */
+function idiomBlank(q){
+  const it=IDIOMS[q.i];
+  const blanks=shuffle([0,1,2,3]).slice(0,2).sort();
+  let wrong=0;
+  const missing=blanks.map(i=>it.w[i]).join('');
+  app.innerHTML=`${headHTML(q,'빈칸에 들어갈 두 글자를 쓰면 문이 열려요.')}
+    <div id="tw">${tilesHTML([...it.w].map((c,i)=>blanks.includes(i)?{t:'',cls:'blank slot'}:{t:c}))}</div>
+    <div class="meaning"><b>뜻</b>${it.m}</div>
+    <input type="text" id="ans" autocomplete="off" placeholder="빈칸 두 글자" aria-label="빈칸에 들어갈 두 글자">
+    <button class="btn" id="ok">문 열기</button>
+    <div class="msg" id="msg"></div>`;
+  const ans=document.getElementById('ans'),msg=document.getElementById('msg');
+  const check=()=>{
+    const v=norm(ans.value);
+    if(!v){msg.textContent='빈칸에 들어갈 글자를 써 주세요.';return;}
+    if(v===missing||v===it.w){solvedIdiom(q);return;}
+    wrong++;shake(document.getElementById('tw'));ans.select();
+    if(wrong>=2){
+      const t=document.querySelectorAll('#tw .tile')[blanks[0]];
+      t.textContent=it.w[blanks[0]];t.classList.remove('blank','slot');t.classList.add('hint');
+      msg.textContent='아직 잠겨 있어요. 노란 글자를 힌트로 써 보세요.';
+    }else msg.textContent='아직 잠겨 있어요. 뜻을 다시 읽고 써 보세요.';
+  };
+  document.getElementById('ok').onclick=check;
+  ans.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)check();};
+  ans.focus();
+}
+
+/* ---------- 사자성어: 뜻 보고 고르기 ---------- */
+function idiomChoice(q){
+  const it=IDIOMS[q.i];
+  const used=S.usedIdioms.map(i=>IDIOMS[i].w);
+  const others=shuffle(IDIOMS.filter(x=>!used.includes(x.w))).slice(0,3);
+  const opts=shuffle([it,...others]);
+  app.innerHTML=`${headHTML(q,'이 뜻을 가진 사자성어를 고르세요.')}
+    <div class="meaning" style="margin-top:18px;font-size:1.1rem"><b>뜻</b>${it.m}</div>
+    <div class="choices">${opts.map(o=>`<button class="choice" data-w="${o.w}">${o.w}</button>`).join('')}</div>
+    <div class="msg" id="msg"></div>`;
+  const msg=document.getElementById('msg');
+  app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{
+    if(b.dataset.w===it.w){solvedIdiom(q);return;}
+    b.disabled=true;shake(b);msg.textContent='이 문은 열리지 않아요. 다른 것을 골라 보세요.';
+  });
+}
+
+/* ---------- 사자성어: 조각 맞추기 ---------- */
+function idiomPieces(q){
+  const it=IDIOMS[q.i];
+  const ans=[...it.w];
+  const pool=[];
+  shuffle(IDIOMS.filter(x=>x.w!==it.w)).forEach(x=>[...x.w].forEach(c=>{if(!ans.includes(c)&&!pool.includes(c))pool.push(c);}));
+  const chips=shuffle([...ans,...pool.slice(0,4)]);
+  let filled=[null,null,null,null],wrong=0,hint=false;
+  app.innerHTML=`${headHTML(q,'글자 조각 여덟 개 중 네 개를 순서대로 눌러 사자성어를 완성하세요. 칸을 누르면 글자가 빠져요.')}
+    <div id="tw"></div>
+    <div class="meaning"><b>뜻</b>${it.m}</div>
+    <div class="chips" id="chips">${chips.map((c,i)=>`<button class="chip" data-i="${i}">${c}</button>`).join('')}</div>
+    <div class="msg" id="msg"></div>`;
+  const tw=document.getElementById('tw'),msg=document.getElementById('msg');
+  const draw=()=>{
+    tw.innerHTML='<div class="tiles">'+filled.map((f,i)=>`<button class="tile slot${hint&&i===0?' hint':''}" data-s="${i}" aria-label="${i+1}번째 칸">${f===null?'':chips[f]}</button>`).join('')+'</div>';
+    const tiles=tw.querySelectorAll('.tile');
+    tiles.forEach(t=>{
+      t.style.background='transparent';t.style.border='0';t.style.borderRight='1px solid var(--grid)';t.style.color='inherit';t.style.font='inherit';
+      t.onclick=()=>{
+        const s=+t.dataset.s;if(filled[s]===null||(hint&&s===0))return;
+        app.querySelector(`.chip[data-i="${filled[s]}"]`).disabled=false;filled[s]=null;draw();
+      };
+    });
+    tiles[3].style.borderRight='0';
+    if(hint)tiles[0].style.color='var(--brass)';
+  };
+  const reset=()=>{
+    filled.forEach((f,i)=>{if(f!==null&&!(hint&&i===0)){app.querySelector(`.chip[data-i="${f}"]`).disabled=false;filled[i]=null;}});
+    draw();
+  };
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
+    const s=filled.indexOf(null);if(s<0)return;
+    filled[s]=+b.dataset.i;b.disabled=true;draw();
+    if(filled.indexOf(null)<0){
+      const word=filled.map(f=>chips[f]).join('');
+      if(word===it.w){setTimeout(()=>solvedIdiom(q),250);return;}
+      wrong++;
+      setTimeout(()=>{
+        shake(tw);
+        if(wrong>=2&&!hint){
+          reset();hint=true;
+          const ci=chips.indexOf(ans[0]);
+          filled[0]=ci;app.querySelector(`.chip[data-i="${ci}"]`).disabled=true;draw();
+          msg.textContent='아직 잠겨 있어요. 첫 글자를 채워 두었어요.';
+        }else{reset();msg.textContent='순서가 맞지 않아요. 뜻을 보고 다시 맞춰 보세요.';}
+      },300);
+    }
+  });
+  draw();
+}
+
+/* ---------- 맞춤법 ---------- */
+function spell(q){
+  const it=SPELLS[q.i];
+  const sent=it.s.replace(/___/g,'<span class="gap">&nbsp;</span>');
+  const opts=shuffle(it.o);
+  app.innerHTML=`${headHTML(q,'빈칸에 들어갈 바른 말을 고르세요.')}
+    <div class="sentence">${sent}</div>
+    <div class="choices two">${opts.map(o=>`<button class="choice" data-o="${o}">${o}</button>`).join('')}</div>
+    <div class="msg" id="msg"></div>`;
+  const msg=document.getElementById('msg');
+  app.querySelectorAll('.choice').forEach(b=>b.onclick=()=>{
+    if(b.dataset.o===it.o[0]){solvedSpell(q);return;}
+    b.disabled=true;shake(b);msg.textContent='맞춤법이 틀렸어요. 남은 것을 골라 보세요.';
+  });
+}
+
+/* ---------- 통과 화면 ---------- */
+function passScreen(q,body){
+  S.step++;
+  const last=S.step>=S.quiz.length;
+  const tag=q.kind==='spell'?'<span class="tag sp">맞춤법</span>':'<span class="tag">사자성어</span>';
+  app.innerHTML=`${barHTML(S.step)}${tag}
+    <h2>${S.step}번째 문 통과</h2>
+    <p class="lead">열쇠 하나를 얻었어요.</p>
+    ${body}
+    <button class="btn" id="next">${last?'마지막 문 앞으로 가기':'다음 문으로 가기'}</button>`;
+  document.getElementById('next').onclick=()=>{last?door():room();};
+  window.scrollTo(0,0);
+}
+function solvedIdiom(q){
+  const it=IDIOMS[q.i];
+  passScreen(q,`<div class="stampwrap">${tilesHTML([...it.w].map(c=>({t:c})))}<div class="seal">통과</div></div>
+    <div class="hanja">${it.h}</div>
+    <div class="meaning"><b>뜻</b>${it.m}</div>`);
+}
+function solvedSpell(q){
+  const it=SPELLS[q.i];
+  const sent=it.s.replace(/___/g,`<span class="gap fill">${it.o[0]}</span>`);
+  passScreen(q,`<div class="stampwrap"><div class="sentence">${sent}</div><div class="seal">통과</div></div>
+    <div class="meaning"><b>풀이</b>${it.e}</div>`);
+}
+
+/* ---------- 마지막 문, 결과 ---------- */
+function door(){
+  app.innerHTML=`${barHTML(S.quiz.length)}
+    <h2>마지막 문</h2>
+    <p class="lead">열쇠 ${S.quiz.length}개가 모두 모였어요. 주변에 아무도 없는지 확인하고 문을 여세요.</p>
+    <div class="door"><span class="lock">${LOCK_SVG}</span></div>
+    <button class="btn" id="open">마지막 문 열기</button>`;
+  document.getElementById('open').onclick=reveal;
+  window.scrollTo(0,0);
+}
+function reveal(){
+  const m=buildMatch(S.code)[S.num];
+  app.innerHTML=`${barHTML(S.quiz.length)}
+    <div class="reveal">
+      <p class="serif" style="font-size:1.25rem;margin:10px 0 0">${S.num}번의 마니또는</p>
+      <div class="big">${m}<small>번</small></div>
+      <div class="secret">
+        <p class="serif" style="font-weight:700;margin-bottom:6px">${m}번 친구를 몰래 챙겨 주세요.</p>
+        <p class="small" style="margin:0">누가 마니또인지는 끝날 때까지 비밀이에요. 친구에게 말하지 말고, 화면도 보여 주지 마세요.</p>
+      </div>
+    </div>
+    <button class="btn" id="hide">확인했어요. 화면 가리기</button>`;
+  document.getElementById('hide').onclick=start;
+  window.scrollTo(0,0);
+}
+
+/* ---------- 선생님 명단 ---------- */
+const dlg=document.getElementById('teacher');
+function openTeacher(){
+  const c=document.getElementById('code');
+  document.getElementById('tcode').value=c?c.value:S.code;
+  document.getElementById('tlist').innerHTML='';
+  if(typeof dlg.showModal==='function')dlg.showModal();else dlg.setAttribute('open','');
+}
+document.getElementById('tshow').onclick=()=>{
+  const v=document.getElementById('tcode').value;
+  const out=document.getElementById('tlist');
+  if(!norm(v)){out.innerHTML='<p class="msg">비밀 코드를 입력하세요.</p>';return;}
+  const map=buildMatch(v);
+  out.innerHTML='<table><thead><tr><th>학생</th><th>마니또</th><th>학생</th><th>마니또</th></tr></thead><tbody>'+
+    Array.from({length:9},(_,i)=>{const a=NUMBERS[i],b=NUMBERS[i+9];return `<tr><td>${a}번</td><td>${map[a]}번</td><td>${b}번</td><td>${map[b]}번</td></tr>`;}).join('')+
+    '</tbody></table>';
+};
+document.getElementById('tclose').onclick=()=>{if(dlg.close)dlg.close();else dlg.removeAttribute('open');};
+
+start();
+</script>
+</body>
+</html>
